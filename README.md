@@ -88,6 +88,24 @@ pip install "cloudsealed-jit[jit,api]"   # + HTTP service
 `numba` is optional. Without it the kernels run on pure NumPy and the results
 are identical; only large inputs get slower.
 
+## GitHub Action
+
+The fastest way to use this: run the audit in CI and get the findings as a pull
+request comment, without installing anything locally.
+
+```yaml
+- uses: cloudsealed/JIT-Optimization-Engine@main
+  with:
+    billing-csv: billing/latest-export.csv
+    fail-on-severity: CRITICAL   # optional: fail the check on CRITICAL anomalies
+```
+
+Re-runs on the same PR edit the existing comment instead of piling up new ones.
+See [action.yml](action.yml) for all inputs/outputs and
+[.github/workflows/example-usage.yml](.github/workflows/example-usage.yml) for
+a working example (this repository dogfoods its own action against
+[examples/sample-billing.csv](examples/sample-billing.csv) on every push).
+
 ## Use
 
 ### CLI
