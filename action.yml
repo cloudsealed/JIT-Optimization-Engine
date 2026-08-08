@@ -1,0 +1,87 @@
+name: 'cloudsealed-jit — cloud billing waste audit'
+description: >
+  Detect structural cost anomalies in a cloud billing export (AWS/GCP/Azure/
+  generic CSV) using a robust day-of-week baseline and MAD-based z-scores, and
+  post the findings as a pull request comment.
+author: 'CloudSealed'
+branding:
+  icon: 'dollar-sign'
+  color: 'green'
+
+inputs:
+  billing-csv:
+    description: 'Path to the billing export CSV (date,service,cost or a supported provider format).'
+    required: true
+  analysis-type:
+    description: 'waste-audit | cost-forecast | efficiency'
+    required: false
+    default: 'waste-audit'
+  comment-on-pr:
+    description: 'Post/update a summary comment on the triggering pull request.'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used to post the PR comment. Defaults to the workflow token.'
+    required: false
+    default: ${{ github.token }}
+  fail-on-severity:
+    description: >
+      Fail the step if any anomaly at or above this severity is found:
+      CRITICAL | HIGH | MEDIUM | LOW. Empty (default) never fails the build —
+      the action only reports.
+    required: false
+    default: ''
+
+outputs:
+  anomaly-count:
+    description: 'Number of anomalies detected.'
+    value: ${{ steps.analyze.outputs.anomaly-count }}
+  waste-percentage:
+    description: 'Share of total spend sitting above the modelled baseline.'
+    value: ${{ steps.analyze.outputs.waste-percentage }}
+  report-json:
+    description: 'Path to the full AnalysisResult JSON.'
+    value: ${{ steps.analyze.outputs.report-json }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install cloudsealed-jit
+      shell: bash
+      run: pip install --quiet cloudsealed-jit
+
+    - name: Run analysis
+      id: analyze
+      shell: bash
+      run: |
+        set -euo pipefail
+        REPORT="${RUNNER_TEMP}/cloudsealed-jit-report.json"
+        cloudsealed-jit "${{ inputs.billing-csv }}" --type "${{ inputs.analysis-type }}" --json > "$REPORT"
+
+        WASTE=$(python3 -c "import json; print(json.load(open('$REPORT'))['metrics']['wastePercentage'])")
+        COUNT=$(python3 -c "import json; print(len(json.load(open('$REPORT'))['anomalies']))")
+
+        echo "report-json=$REPORT" >> "$GITHUB_OUTPUT"
+        echo "waste-percentage=$WASTE" >> "$GITHUB_OUTPUT"
+        echo "anomaly-count=$COUNT" >> "$GITHUB_OUTPUT"
+
+    - name: Comment on pull request
+      if: inputs.comment-on-pr == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        REPORT_JSON: ${{ steps.analyze.outputs.report-json }}
+      run: python3 "${{ github.action_path }}/scripts/post_pr_comment.py"
+
+    - name: Enforce severity gate
+      if: inputs.fail-on-severity != ''
+      shell: bash
+      env:
+        REPORT_JSON: ${{ steps.analyze.outputs.report-json }}
+        MIN_SEVERITY: ${{ inputs.fail-on-severity }}
+      run: python3 "${{ github.action_path }}/scripts/severity_gate.py"

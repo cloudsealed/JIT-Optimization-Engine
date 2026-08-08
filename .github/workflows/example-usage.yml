@@ -1,0 +1,32 @@
+name: Example — self-hosted usage of the action
+
+# Dogfoods this repository's own GitHub Action against the sample billing
+# export in examples/. Runs on every push/PR to main so the action itself is
+# continuously verified against a real workflow run, not just unit tests.
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  audit-sample-billing:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run cloudsealed-jit on the sample export
+        id: jit
+        uses: ./
+        with:
+          billing-csv: examples/sample-billing.csv
+          fail-on-severity: '' # report-only in this example
+
+      - name: Show outputs
+        run: |
+          echo "anomaly-count=${{ steps.jit.outputs.anomaly-count }}"
+          echo "waste-percentage=${{ steps.jit.outputs.waste-percentage }}"
