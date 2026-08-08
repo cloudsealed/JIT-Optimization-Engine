@@ -1,8 +1,5 @@
-name: 'cloudsealed-jit — cloud billing waste audit'
-description: >
-  Detect structural cost anomalies in a cloud billing export (AWS/GCP/Azure/
-  generic CSV) using a robust day-of-week baseline and MAD-based z-scores, and
-  post the findings as a pull request comment.
+name: 'cloudsealed-jit billing waste audit'
+description: 'Detect cloud billing cost anomalies and post findings as a PR comment.'
 author: 'CloudSealed'
 branding:
   icon: 'dollar-sign'
