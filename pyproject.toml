@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloudsealed-jit"
+version = "0.2.0"
+description = "Detect structural waste in cloud billing exports using robust day-of-week baselines"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Rodrigo Martinez Pinto" }]
+keywords = ["finops", "cloud-cost", "aws", "gcp", "azure", "anomaly-detection", "billing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Monitoring",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+# Native compilation of the baseline kernels. Optional: the package falls
+# back to pure NumPy when numba is unavailable.
+jit = ["numba>=0.57"]
+api = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "pydantic>=2.6"]
+dev = ["pytest>=7.4", "httpx>=0.27"]
+
+[project.scripts]
+cloudsealed-jit = "cloudsealed_jit.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/cloudsealed/JIT-Optimization-Engine"
+Source = "https://github.com/cloudsealed/JIT-Optimization-Engine"
+Issues = "https://github.com/cloudsealed/JIT-Optimization-Engine/issues"
+
+[tool.setuptools.packages.find]
+# Pinned to the flat layout: the legacy top-level src/ directory would
+# otherwise make setuptools auto-detect a src-layout project.
+where = ["."]
+include = ["cloudsealed_jit*"]
+namespaces = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
