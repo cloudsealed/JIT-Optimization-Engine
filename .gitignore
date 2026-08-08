@@ -480,3 +480,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Python packaging build artifacts
+*.egg-info/
+build/
+dist/
