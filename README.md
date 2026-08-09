@@ -215,6 +215,46 @@ Line items are aggregated to calendar days. Days with no line items are
 inserted as zero-spend days rather than skipped. Rows that cannot be parsed are
 counted and reported in the summary rather than dropped silently.
 
+## How this compares to other cloud cost anomaly detection tools
+
+cloudsealed-jit does one thing — find cost spikes in a billing export — and
+does not try to be a full FinOps platform. If you need a dashboard, live
+cloud API connectors, Kubernetes cost allocation, or RI/Savings Plan
+management, a commercial platform is the right tool; this is a lighter,
+composable piece for the detection step specifically.
+
+| | cloudsealed-jit | Vantage / CloudZero / Finout | AWS Cost Anomaly Detection |
+|---|---|---|---|
+| Method | Rolling-median + MAD (open, documented, benchmarked) | Proprietary ML | Proprietary ML |
+| Multi-cloud | AWS/GCP/Azure/generic CSV | Yes (paid) | AWS only |
+| Deployment | Library, CLI, self-hosted API, GitHub Action, MCP tool | SaaS | AWS-managed |
+| Cost | Free, open source (MIT) | Paid, usage-based | Free (AWS-native) |
+| Dashboard | None (by design — pair with your own) | Yes | Yes |
+| Slack/webhook alerts | Yes | Yes | Yes (SNS) |
+
+## FAQ
+
+**How do I detect cost anomalies in an AWS billing export with Python?**
+Install `cloudsealed-jit`, then `cloudsealed-jit your-cur-export.csv`. See
+[Install](#install) and [Use](#use) above.
+
+**Why not just use mean + standard deviation for anomaly detection?**
+Because a handful of large spikes inflates the standard deviation enough to
+hide themselves and everything smaller — see
+["The problem"](#the-problem) and the measured comparison in
+["Does it actually work better?"](#does-it-actually-work-better).
+
+**Can an AI agent call this directly instead of me running the CLI?**
+Yes — see [cloudsealed-mcp](https://github.com/cloudsealed/cloudsealed-mcp),
+an MCP server that exposes this as a tool for Claude Code, Claude Desktop,
+Cursor, and other MCP clients.
+
+**Does this replace AWS Cost Anomaly Detection / GCP's built-in tools?**
+Not necessarily — it's cloud-agnostic and works on data you've already
+exported, so it's useful alongside native tools when you need one method
+across multiple clouds, or want the detection logic to run in CI as a
+GitHub Action.
+
 ## Development
 
 ```bash
