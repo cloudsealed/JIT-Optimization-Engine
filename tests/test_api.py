@@ -47,6 +47,24 @@ def test_analysis_type_defaults_to_waste_audit(stable_billing):
     assert response.status_code == 200
 
 
+def test_budget_adds_forecast_without_breaking_default_shape(spiked_billing):
+    # A budget request must surface a forecast object; the default (no budget)
+    # response must stay free of the field to preserve the frozen contract.
+    with_budget = client.post(
+        "/v1/analyze-billing",
+        json={"companyName": "Acme", "csvContent": spiked_billing, "budget": 100.0},
+    ).json()
+    assert "forecast" in with_budget
+    assert with_budget["forecast"]["horizonDays"] == 30
+    assert with_budget["forecast"]["budget"] == 100.0
+
+    without = client.post(
+        "/v1/analyze-billing",
+        json={"companyName": "Acme", "csvContent": spiked_billing},
+    ).json()
+    assert "forecast" not in without
+
+
 def test_unreadable_export_returns_422_not_500():
     response = client.post(
         "/v1/analyze-billing",

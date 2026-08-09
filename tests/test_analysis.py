@@ -111,6 +111,49 @@ def test_efficiency_mode_omits_saving_recommendations(spiked_billing):
 def test_forecast_mode_projects_run_rate(stable_billing):
     result = analyze(parse_billing_csv(stable_billing), "cost-forecast")
     assert "Projected 30-day spend" in result.summary
+    assert result.forecast is not None
+    assert result.forecast.horizonDays == 30
+
+
+def _trending_billing(slope: float, days: int = 40, start_cost: float = 100.0) -> str:
+    from datetime import date, timedelta
+    rows = ["date,cost"]
+    base = date(2026, 1, 1)
+    for i in range(days):
+        d = base + timedelta(days=i)
+        rows.append(f"{d},{start_cost + slope * i:.2f}")
+    return "\n".join(rows) + "\n"
+
+
+def test_forecast_is_trend_aware_not_flat_run_rate():
+    # On a rising series the trend-aware projection must exceed the flat
+    # mean*horizon run rate, because the trend keeps climbing past the mean.
+    result = analyze(parse_billing_csv(_trending_billing(slope=5.0)), "cost-forecast")
+    f = result.forecast
+    assert f.dailyTrend > 0
+    assert f.projectedSpend > f.runRateSpend
+
+
+def test_forecast_predicts_budget_breach_day():
+    # Rising spend against a budget it will cross: breach day is within horizon.
+    result = analyze(parse_billing_csv(_trending_billing(slope=5.0)), budget=6000.0)
+    f = result.forecast
+    assert f.budget == 6000.0
+    assert f.budgetBreachDay is not None
+    assert 1 <= f.budgetBreachDay <= 30
+    assert "budget is crossed on day" in result.summary
+
+
+def test_forecast_reports_no_breach_when_budget_is_ample():
+    result = analyze(parse_billing_csv(_trending_billing(slope=0.0)), budget=1_000_000.0)
+    f = result.forecast
+    assert f.budgetBreachDay is None
+    assert "not projected to be crossed" in result.summary
+
+
+def test_waste_audit_has_no_forecast_without_budget(stable_billing):
+    result = analyze(parse_billing_csv(stable_billing), "waste-audit")
+    assert result.forecast is None
 
 
 def test_zero_spend_series_does_not_divide_by_zero():
