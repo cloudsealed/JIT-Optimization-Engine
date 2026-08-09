@@ -1,0 +1,34 @@
+# cloudsealed-jit
+
+> Detects structural waste in cloud billing exports (AWS/GCP/Azure/generic) by
+> modelling expected daily spend as a rolling-median baseline times a
+> day-of-week factor, then scoring residuals with a modified z-score built on
+> the median absolute deviation (MAD). This is resistant to the "masking
+> effect" that causes textbook mean+standard-deviation anomaly detectors to
+> miss anomalies once a few large spikes have inflated the standard
+> deviation. Measured, not asserted: `benchmarks/masking_benchmark.py`
+> reproduces the F1 advantage over the textbook method on synthetic data
+> with known ground truth.
+
+It is a Python library, a CLI (`cloudsealed-jit`), an HTTP service
+(FastAPI), and a GitHub Action. It does not call any cloud provider API —
+callers must already have exported billing data to CSV/text.
+
+## Docs
+
+- [README](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/README.md): install, CLI/API/GitHub Action usage, alerts, HTML reports
+- [METHODOLOGY.md](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/METHODOLOGY.md): full derivation of the baseline and scoring method, with reproduction steps
+- [architecture.md](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/architecture.md): codebase design
+- [benchmarks/masking_benchmark.py](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/benchmarks/masking_benchmark.py): reproducible F1 comparison against the textbook mean+stddev method
+
+## MCP
+
+An MCP server exposing this engine as an `cloudsealed_analyze_billing_waste`
+tool for AI agents is available at
+[cloudsealed/cloudsealed-mcp](https://github.com/cloudsealed/cloudsealed-mcp).
+
+## Optional
+
+- [PyPI package](https://pypi.org/project/cloudsealed-jit/): `pip install cloudsealed-jit`
+- [Docker image](https://hub.docker.com/r/cloudsealed/jit-optimization-engine): `docker pull cloudsealed/jit-optimization-engine`
+- [GitHub Action listing](https://github.com/marketplace/actions/cloudsealed-jit-billing-waste-audit)
