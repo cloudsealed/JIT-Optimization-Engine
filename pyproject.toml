@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloudsealed-jit"
-version = "0.2.0"
+version = "0.2.1"
 description = "Detect structural waste in cloud billing exports using robust day-of-week baselines"
 readme = "README.md"
 requires-python = ">=3.10"
