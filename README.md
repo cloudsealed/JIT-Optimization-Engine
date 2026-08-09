@@ -209,7 +209,14 @@ contract; it is not a risk-adjusted return.
 | AWS Cost and Usage Report | `lineItem/UsageStartDate` | `lineItem/UnblendedCost` |
 | GCP billing export | `usage_start_time` | `cost` |
 | Azure cost export | `Date`, `UsageDateTime` | `Cost`, `CostInBillingCurrency` |
+| **FOCUS 1.0** | `ChargePeriodStart` | `BilledCost` |
 | Generic | heuristic | heuristic |
+
+[FOCUS](https://focus.finops.org/) is the FinOps Open Cost and Usage
+Specification — the vendor-neutral billing format AWS, GCP, Azure and OCI now
+export natively. One FOCUS export runs through this analyser unchanged
+regardless of which cloud produced it, so a multi-cloud estate is analysed the
+same way end to end.
 
 Line items are aggregated to calendar days. Days with no line items are
 inserted as zero-spend days rather than skipped. Rows that cannot be parsed are
