@@ -6,6 +6,10 @@ Given a billing export from AWS, GCP or Azure, it models what each day *should*
 have cost, reports the days that did not match, and turns the excess into a
 monthly figure. It is a library, a CLI and an HTTP service.
 
+[![CI](https://github.com/cloudsealed/JIT-Optimization-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/cloudsealed/JIT-Optimization-Engine/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/cloudsealed-jit.svg)](https://pypi.org/project/cloudsealed-jit/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/cloudsealed-jit.svg)](https://pypi.org/project/cloudsealed-jit/)
+[![Docker pulls](https://img.shields.io/docker/pulls/cloudsealed/jit-optimization-engine.svg)](https://hub.docker.com/r/cloudsealed/jit-optimization-engine)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
@@ -204,3 +208,7 @@ than the current output.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+If this saved you from a false-positive cost alert, a star helps other teams find it. Bug reports and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
