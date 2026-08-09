@@ -15,7 +15,12 @@ Supported layouts, detected from the header row:
     AWS Cost and Usage Report   lineItem/UsageStartDate, lineItem/UnblendedCost
     GCP billing export          usage_start_time, cost, service.description
     Azure cost export           Date / UsageDateTime, Cost / CostInBillingCurrency
+    FOCUS 1.0                    ChargePeriodStart, BilledCost, ServiceName
     Generic                     heuristic match on date / cost / service columns
+
+FOCUS (the FinOps Open Cost and Usage Specification) is the vendor-neutral
+billing format that AWS, GCP, Azure and OCI now export natively. Supporting it
+means one analysis runs across every cloud's export unchanged.
 
 Rows that cannot be parsed are counted and reported rather than silently
 dropped, so callers can tell a partially-understood file from a clean one.
@@ -47,6 +52,8 @@ _DATE_COLUMNS: Sequence[str] = (
     "lineitem/usagestartdate",          # AWS CUR
     "lineitem/usagestarttime",
     "bill/billingperiodstartdate",
+    "chargeperiodstart",                # FOCUS 1.0 (FinOps Open Cost and Usage Spec)
+    "billingperiodstart",               # FOCUS 1.0 (fallback: monthly period)
     "usage_start_time",                 # GCP
     "usage_date",
     "usagedatetime",                    # Azure
@@ -59,11 +66,12 @@ _COST_COLUMNS: Sequence[str] = (
     "lineitem/unblendedcost",           # AWS CUR
     "lineitem/blendedcost",
     "lineitem/netunblendedcost",
+    "billedcost",                       # FOCUS 1.0 (invoiced amount)
     "cost",                             # GCP / generic
     "costinbillingcurrency",            # Azure
     "pretaxcost",
     "amortizedcost",
-    "effectivecost",
+    "effectivecost",                    # FOCUS 1.0 (amortized amount)
     "amount",
 )
 
@@ -73,7 +81,8 @@ _SERVICE_COLUMNS: Sequence[str] = (
     "service.description",              # GCP
     "service_description",
     "service",
-    "servicename",                      # Azure
+    "servicename",                      # Azure / FOCUS 1.0
+    "servicecategory",                  # FOCUS 1.0 (fallback: coarse category)
     "metercategory",
     "product",
     "resourcegroup",
