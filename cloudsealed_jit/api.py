@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from . import __version__
 from .analysis import analyze
 from .kernels import JIT_ENABLED
+from .notify import post_webhook
 from .parsing import ParseError, parse_billing_csv
 
 logger = logging.getLogger("cloudsealed_jit.api")
@@ -41,6 +42,11 @@ class AnalyzeBillingRequest(BaseModel):
     csvContent: str = Field(description="Raw contents of the billing export.")
     analysisType: Optional[Literal["waste-audit", "cost-forecast", "efficiency"]] = (
         "waste-audit"
+    )
+    webhookUrl: Optional[str] = Field(
+        default=None,
+        description="If set, POST the result here (Slack incoming webhook or generic "
+        "listener) when an anomaly reaches CRITICAL/HIGH severity.",
     )
 
 
@@ -148,6 +154,13 @@ def analyze_billing(payload: AnalyzeBillingRequest) -> AnalyzeBillingResponse:
         payload.companyName, series.span_days, series.rows_parsed,
         len(result.anomalies), elapsed_ms,
     )
+
+    if payload.webhookUrl:
+        try:
+            post_webhook(payload.webhookUrl, result, company_name=payload.companyName)
+        except Exception:  # pragma: no cover - defensive, notify() already swallows network errors
+            logger.exception("Webhook dispatch failed for %s", payload.companyName)
+
     return AnalyzeBillingResponse(**result.to_dict())
 
 

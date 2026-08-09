@@ -110,6 +110,23 @@ See [action.yml](action.yml) for all inputs/outputs and
 a working example (this repository dogfoods its own action against
 [examples/sample-billing.csv](examples/sample-billing.csv) on every push).
 
+## Alerts
+
+Send the result to Slack (or any generic webhook listener) when an anomaly
+reaches a severity threshold, without standing up a dashboard:
+
+```bash
+cloudsealed-jit billing-export.csv --webhook-url "$SLACK_WEBHOOK_URL"
+cloudsealed-jit billing-export.csv --webhook-url "$SLACK_WEBHOOK_URL" --webhook-min-severity CRITICAL
+```
+
+A Slack incoming-webhook URL (`hooks.slack.com`) is auto-detected and rendered
+as a formatted message; any other URL receives the full JSON result, so it
+works as-is with Teams, PagerDuty, or a custom listener. Nothing is sent on a
+quiet run — the default threshold is `HIGH`. The same behaviour is available
+in the HTTP API via the optional `webhookUrl` field on `/v1/analyze-billing`.
+A failed webhook is logged and never fails the analysis.
+
 ## Use
 
 ### CLI
@@ -117,8 +134,13 @@ a working example (this repository dogfoods its own action against
 ```bash
 cloudsealed-jit billing-export.csv
 cloudsealed-jit billing-export.csv --json > findings.json
+cloudsealed-jit billing-export.csv --html report.html
 cat export.csv | cloudsealed-jit - --type cost-forecast
 ```
+
+`--html` writes a self-contained report (inline CSS, no CDN) alongside
+whatever other output is requested — open it straight from disk, or attach it
+to an email.
 
 ### Library
 
