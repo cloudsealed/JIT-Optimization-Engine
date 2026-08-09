@@ -26,6 +26,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="emit raw JSON")
     parser.add_argument(
+        "--budget",
+        type=float,
+        default=None,
+        metavar="AMOUNT",
+        help="monthly budget; if set, project when the current trend crosses it "
+        "(implies a forecast even outside --type cost-forecast).",
+    )
+    parser.add_argument(
         "--html",
         default="",
         metavar="PATH",
@@ -48,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     text = sys.stdin.read() if args.csv == "-" else open(args.csv, encoding="utf-8").read()
 
     try:
-        result = analyze(parse_billing_csv(text), args.type)
+        result = analyze(parse_billing_csv(text), args.type, budget=args.budget)
     except ParseError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

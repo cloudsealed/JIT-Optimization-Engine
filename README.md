@@ -135,12 +135,32 @@ A failed webhook is logged and never fails the analysis.
 cloudsealed-jit billing-export.csv
 cloudsealed-jit billing-export.csv --json > findings.json
 cloudsealed-jit billing-export.csv --html report.html
-cat export.csv | cloudsealed-jit - --type cost-forecast
+cloudsealed-jit billing-export.csv --type cost-forecast
+cloudsealed-jit billing-export.csv --budget 50000     # when will the trend cross it?
 ```
 
 `--html` writes a self-contained report (inline CSS, no CDN) alongside
 whatever other output is requested — open it straight from disk, or attach it
 to an email.
+
+## Forecast
+
+Anomaly detection is reactive — it tells you *after* a spike. `--type
+cost-forecast` (or `--budget`) adds a **proactive** projection: it extrapolates
+the observed level trend (rolling median slope) forward, carrying the same
+weekday seasonality the baseline uses, and — given a budget — predicts the day
+the trend crosses it:
+
+```
+Projected 30-day spend USD 10,901.01 (trend rising, USD +4.89/day).
+At this trend the USD 6,000.00 budget is crossed on day 18 of the horizon.
+```
+
+It's a mechanical extrapolation, not a probabilistic prediction — the
+`projectedSpend`, `dailyTrend`, and `budgetBreachDay` fields state exactly what
+was computed, so the number is auditable rather than a black-box guess. The
+forecast is added to the JSON/HTTP response only when requested, so the default
+response shape is unchanged.
 
 ### Library
 

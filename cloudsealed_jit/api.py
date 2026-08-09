@@ -48,6 +48,11 @@ class AnalyzeBillingRequest(BaseModel):
         description="If set, POST the result here (Slack incoming webhook or generic "
         "listener) when an anomaly reaches CRITICAL/HIGH severity.",
     )
+    budget: Optional[float] = Field(
+        default=None,
+        description="Monthly budget; if set, the response includes a forecast projecting "
+        "when the current spend trend crosses it.",
+    )
 
 
 class CostAnomaly(BaseModel):
@@ -74,11 +79,22 @@ class Recommendation(BaseModel):
     effort: Literal["LOW", "MEDIUM", "HIGH"]
 
 
+class Forecast(BaseModel):
+    horizonDays: int
+    projectedSpend: float
+    runRateSpend: float
+    dailyTrend: float
+    budget: Optional[float] = None
+    budgetBreachDay: Optional[int] = None
+    method: str
+
+
 class AnalyzeBillingResponse(BaseModel):
     anomalies: list[CostAnomaly]
     metrics: Metrics
     recommendations: list[Recommendation]
     summary: str
+    forecast: Optional[Forecast] = None
 
 
 # --------------------------------------------------------------------------
@@ -116,6 +132,10 @@ def health() -> dict:
 @app.post(
     "/v1/analyze-billing",
     response_model=AnalyzeBillingResponse,
+    # `forecast` is only present when requested (cost-forecast or a budget).
+    # Excluding None keeps the default response byte-identical to the frozen
+    # Framework4D contract, so this stays a purely additive change.
+    response_model_exclude_none=True,
     dependencies=[Depends(require_api_key)],
 )
 def analyze_billing(payload: AnalyzeBillingRequest) -> AnalyzeBillingResponse:
@@ -140,7 +160,7 @@ def analyze_billing(payload: AnalyzeBillingRequest) -> AnalyzeBillingResponse:
         ) from exc
 
     try:
-        result = analyze(series, payload.analysisType or "waste-audit")
+        result = analyze(series, payload.analysisType or "waste-audit", budget=payload.budget)
     except Exception:  # pragma: no cover - defensive
         logger.exception("Analysis failed for %s", payload.companyName)
         raise HTTPException(

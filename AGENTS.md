@@ -21,6 +21,9 @@ deviation ("masking effect"). The advantage is measured, not asserted —
   otherwise have to re-derive by hand.
 - The user wants cost anomaly detection that runs offline / self-hosted, in CI,
   or without sending billing data to a SaaS.
+- The user asks "when will we blow our budget?" or wants a spend forecast — use
+  `--type cost-forecast` or `--budget AMOUNT` (a trend-aware projection, not the
+  flat run rate), rather than computing an extrapolation yourself.
 
 ## When NOT to use it
 

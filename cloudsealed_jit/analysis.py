@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import statistics
 from dataclasses import asdict, dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 import numpy as np
@@ -48,6 +48,7 @@ __all__ = [
     "Anomaly",
     "Metrics",
     "Recommendation",
+    "Forecast",
     "AnalysisResult",
     "analyze",
     "Z_THRESHOLD",
@@ -108,6 +109,25 @@ class Recommendation:
 
 
 @dataclass
+class Forecast:
+    """A trend-aware projection of future spend.
+
+    Mechanical extrapolation of the observed level (rolling median) and weekly
+    seasonality — not a probabilistic prediction. It answers "if the current
+    trend holds, what will we spend, and when do we cross a budget?", which is
+    proactive where anomaly detection alone is reactive.
+    """
+
+    horizonDays: int
+    projectedSpend: float          # trend + weekday-seasonality projection over the horizon
+    runRateSpend: float            # flat mean * horizon, for comparison
+    dailyTrend: float              # slope of the level term: +/- currency per day
+    budget: float | None = None    # echoed if the caller supplied one
+    budgetBreachDay: int | None = None  # 1-indexed horizon day cumulative spend crosses budget
+    method: str = "rolling-median level trend + weekday seasonality"
+
+
+@dataclass
 class AnalysisResult:
     anomalies: list[Anomaly] = field(default_factory=list)
     metrics: Metrics = field(
@@ -115,6 +135,7 @@ class AnalysisResult:
     )
     recommendations: list[Recommendation] = field(default_factory=list)
     summary: str = ""
+    forecast: Forecast | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -314,13 +335,78 @@ def _volatility_recommendation(stability: float, mean: float,
 
 
 # --------------------------------------------------------------------------
+# Forecast
+# --------------------------------------------------------------------------
+
+#: Default projection horizon, matching the 30-day normalisation used for
+#: recommendations elsewhere in the module.
+FORECAST_HORIZON_DAYS = 30
+
+#: Recent window used to estimate the level trend. Long enough to smooth noise,
+#: short enough to reflect the current trajectory rather than the whole history.
+_TREND_WINDOW = 28
+
+
+def _forecast(series: BillingSeries, costs: np.ndarray,
+              horizon: int = FORECAST_HORIZON_DAYS,
+              budget: float | None = None) -> Forecast:
+    """Project spend forward from the observed level trend and weekday shape.
+
+    The level (rolling median) already tracks growth and step changes; its
+    slope over a recent window is the daily trend. Each future day is that
+    projected level times the weekday factor for that calendar day, so the
+    projection carries the same weekly seasonality the baseline uses.
+    """
+    days = series.days
+    level = rolling_median(costs, window=7)
+    factors = _weekday_factors(costs, level, days)
+
+    # Trend of the level term over the recent window (currency per day).
+    window = min(len(level), _TREND_WINDOW)
+    recent = level[-window:]
+    x = np.arange(window, dtype=np.float64)
+    slope = float(np.polyfit(x, recent, 1)[0]) if window >= 2 else 0.0
+    last_level = float(level[-1])
+    last_day = days[-1]
+
+    projected_daily: list[float] = []
+    for k in range(1, horizon + 1):
+        future_level = max(0.0, last_level + slope * k)
+        weekday = (last_day + timedelta(days=k)).weekday()
+        projected_daily.append(future_level * factors[weekday])
+
+    projected_spend = float(sum(projected_daily))
+    mean = float(np.mean(costs))
+    run_rate = mean * horizon
+
+    breach_day: int | None = None
+    if budget is not None and budget > 0:
+        cumulative = 0.0
+        for k, day_cost in enumerate(projected_daily, start=1):
+            cumulative += day_cost
+            if cumulative > budget:
+                breach_day = k
+                break
+
+    return Forecast(
+        horizonDays=horizon,
+        projectedSpend=round(projected_spend, 2),
+        runRateSpend=round(run_rate, 2),
+        dailyTrend=round(slope, 2),
+        budget=round(budget, 2) if budget is not None else None,
+        budgetBreachDay=breach_day,
+    )
+
+
+# --------------------------------------------------------------------------
 # Entry point
 # --------------------------------------------------------------------------
 
 
 def analyze(series: BillingSeries,
             analysis_type: AnalysisType = "waste-audit",
-            *, max_anomalies: int = 25) -> AnalysisResult:
+            *, max_anomalies: int = 25,
+            budget: float | None = None) -> AnalysisResult:
     """Run waste analysis over a parsed billing series."""
     currency = series.currency or "USD"
     span = series.span_days
@@ -410,8 +496,28 @@ def analyze(series: BillingSeries,
     )
     if series.rows_skipped:
         summary += f" {series.rows_skipped:,} row(s) could not be parsed."
-    if analysis_type == "cost-forecast":
-        summary += f" Projected 30-day spend at current run rate: {currency} {mean * 30:,.2f}."
+
+    # Forecast is computed for the cost-forecast type, or whenever a budget is
+    # given (so a budget-breach question works regardless of analysis type).
+    forecast: Forecast | None = None
+    if analysis_type == "cost-forecast" or budget is not None:
+        forecast = _forecast(series, costs, budget=budget)
+        trend_word = "rising" if forecast.dailyTrend > 0 else "falling" if forecast.dailyTrend < 0 else "flat"
+        summary += (
+            f" Projected {forecast.horizonDays}-day spend {currency} "
+            f"{forecast.projectedSpend:,.2f} (trend {trend_word}, "
+            f"{currency} {forecast.dailyTrend:+,.2f}/day)."
+        )
+        if forecast.budgetBreachDay is not None:
+            summary += (
+                f" At this trend the {currency} {forecast.budget:,.2f} budget is "
+                f"crossed on day {forecast.budgetBreachDay} of the horizon."
+            )
+        elif forecast.budget is not None:
+            summary += (
+                f" The {currency} {forecast.budget:,.2f} budget is not projected to "
+                f"be crossed within {forecast.horizonDays} days."
+            )
 
     anomalies.sort(key=lambda a: abs(a.zScore), reverse=True)
 
@@ -420,4 +526,5 @@ def analyze(series: BillingSeries,
         metrics=metrics,
         recommendations=recommendations,
         summary=summary,
+        forecast=forecast,
     )
