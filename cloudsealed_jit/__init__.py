@@ -12,7 +12,7 @@ Public API:
 from .parsing import BillingSeries, ParseError, parse_billing_csv
 from .analysis import AnalysisResult, analyze
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "BillingSeries",
