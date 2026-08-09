@@ -7,7 +7,9 @@ import json
 import sys
 
 from .analysis import analyze
+from .notify import post_webhook
 from .parsing import ParseError, parse_billing_csv
+from .report import render_html
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -23,6 +25,24 @@ def main(argv: list[str] | None = None) -> int:
         help="analysis mode (default: waste-audit)",
     )
     parser.add_argument("--json", action="store_true", help="emit raw JSON")
+    parser.add_argument(
+        "--html",
+        default="",
+        metavar="PATH",
+        help="also write a self-contained HTML report to this path",
+    )
+    parser.add_argument(
+        "--webhook-url",
+        default="",
+        help="POST the result to this URL (Slack incoming webhook or generic listener) "
+        "when an anomaly reaches --webhook-min-severity.",
+    )
+    parser.add_argument(
+        "--webhook-min-severity",
+        default="HIGH",
+        choices=("LOW", "MEDIUM", "HIGH", "CRITICAL"),
+        help="minimum anomaly severity that triggers the webhook (default: HIGH)",
+    )
     args = parser.parse_args(argv)
 
     text = sys.stdin.read() if args.csv == "-" else open(args.csv, encoding="utf-8").read()
@@ -32,6 +52,13 @@ def main(argv: list[str] | None = None) -> int:
     except ParseError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+
+    if args.webhook_url:
+        post_webhook(args.webhook_url, result, min_severity=args.webhook_min_severity)
+
+    if args.html:
+        with open(args.html, "w", encoding="utf-8") as f:
+            f.write(render_html(result))
 
     if args.json:
         print(json.dumps(result.to_dict(), indent=2))
