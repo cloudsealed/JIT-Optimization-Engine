@@ -1,0 +1,18 @@
+{
+  "_comment": "Service-mix calibration derived from a real Google Cloud billing export (one monthly invoice). Contains ONLY non-sensitive GCP service names and their normalized cost proportions -- no account IDs, project names, dollar amounts, SKUs, or dates. Used to shape the synthetic benchmark so its structure (a dominant always-on database plus smaller deploy/traffic-driven services) reflects a real bill rather than invented proportions. Seasonality and anomalies are still injected synthetically with known ground truth.",
+  "source": "Real GCP billing export, single monthly invoice, aggregated to service level and normalized.",
+  "steady_services": {
+    "_note": "Always-on infrastructure: no weekday/weekend cycle, low day-to-day noise.",
+    "Cloud SQL": 0.719,
+    "Secret Manager": 0.046,
+    "Cloud Storage": 0.016,
+    "Cloud Scheduler": 0.011,
+    "Cloud Logging": 0.001
+  },
+  "variable_services": {
+    "_note": "Deploy / traffic driven: weekday spend exceeds weekend, higher noise.",
+    "Artifact Registry": 0.156,
+    "Cloud Run": 0.050,
+    "Cloud Build": 0.001
+  }
+}
