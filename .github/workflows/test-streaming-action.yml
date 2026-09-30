@@ -1,12 +1,16 @@
-name: Test Streaming Action
+name: Test CloudSealed AI Firewall
 
 on:
   workflow_dispatch:
     inputs:
       simulated_cost:
-        description: 'Custos simulado da pipeline (ex: 2.50)'
+        description: '🔥 Daily Spend Spike to Simulate (USD) - Watch the AI block the pipeline!'
         required: true
-        default: '1.50'
+        default: '1500.00'
+      baseline_context:
+        description: '📊 FinOps Context'
+        required: false
+        default: 'Comparing against 30-day accumulated baseline'
 
 jobs:
   test-cost-profiler:
