@@ -14,7 +14,7 @@ from .analysis import AnalysisResult, analyze
 from .compiler import jit
 from .dataclass_compiler import jitdataclass
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "BillingSeries",
