@@ -287,6 +287,15 @@ exported, so it's useful alongside native tools when you need one method
 across multiple clouds, or want the detection logic to run in CI as a
 GitHub Action.
 
+## 🛠️ Extending CloudSealed (Build Your Own Firewall)
+
+**This engine is built to be hackable.** Don't like our Streaming MAD math? Want to write a custom Numba JIT algorithm? **Fork this repository!**
+
+1. **Custom AI Math**: Open `cloudsealed_jit/pipeline_profiler.py` and write your own anomaly logic. The GitHub Action will instantly use it.
+2. **New Cloud Parsers**: Want to add support for DigitalOcean or Oracle Cloud billing? Fork the repo and add a new parser.
+
+**We love Community Forks and Pull Requests!** Check our open `good first issue` tickets to start contributing immediately.
+
 ## Development
 
 ```bash
