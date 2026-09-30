@@ -11,7 +11,7 @@ Public API:
 
 from .parsing import BillingSeries, ParseError, parse_billing_csv
 from .analysis import AnalysisResult, analyze
-from .compiler import jit
+from .compiler import jit, compilation_stats, reset_compilation_stats, CloudSealedCompileError
 from .dataclass_compiler import jitdataclass
 
 __version__ = "0.4.0"
@@ -24,5 +24,8 @@ __all__ = [
     "analyze",
     "jit",
     "jitdataclass",
+    "compilation_stats",
+    "reset_compilation_stats",
+    "CloudSealedCompileError",
     "__version__",
 ]
