@@ -1,0 +1,54 @@
+name: 'CloudSealed Cost Profiler (Streaming)'
+description: 'Protects your CI/CD pipeline from massive billing anomalies using Numba-accelerated Streaming MAD algorithms.'
+author: 'CloudSealed'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  window_size:
+    description: 'Sliding window size for median absolute deviation'
+    required: false
+    default: '30'
+  z_threshold:
+    description: 'Modified Z-Score threshold to trigger a halt'
+    required: false
+    default: '3.5'
+  current_cost_usd:
+    description: 'The estimated or actual cost of the current pipeline step'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Pipeline Profiler
+      shell: bash
+      run: |
+        echo "[*] Initializing CloudSealed JIT Pipeline Profiler..."
+        python -c "
+        import sys
+        import os
+        sys.path.insert(0, '${{ github.action_path }}')
+        try:
+            from cloudsealed_jit.pipeline_profiler import PipelineCostProfiler
+        except ImportError:
+            print('Installing requirements...')
+            os.system('pip install numpy numba')
+            from cloudsealed_jit.pipeline_profiler import PipelineCostProfiler
+
+        profiler = PipelineCostProfiler(window_size=${{ inputs.window_size }}, z_threshold=${{ inputs.z_threshold }})
+        cost = float('${{ inputs.current_cost_usd }}')
+        result = profiler.observe_and_score(cost)
+        
+        print(f'\n--- Cost Profile ---')
+        print(f'Observed Cost: ${cost}')
+        print(f'Z-Score: {result.get(\"z_score\")}')
+        print(f'Anomaly Detected: {result.get(\"is_anomaly\")}')
+        
+        if result.get('is_anomaly'):
+            print('::error::[CloudSealed] Massive Cost Anomaly Detected! Halting pipeline to prevent unexpected billing.')
+            sys.exit(1)
+        else:
+            print('Cost is within historical bounds. Proceeding.')
+            sys.exit(0)
+        "
