@@ -1,5 +1,18 @@
 # 🛡️ CloudSealed JIT-Optimization-Engine
 
+[![PyPI version](https://img.shields.io/pypi/v/cloudsealed-jit.svg)](https://pypi.org/project/cloudsealed-jit/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/cloudsealed-jit.svg)](https://pypi.org/project/cloudsealed-jit/)
+[![GitHub CI](https://github.com/cloudsealed/JIT-Optimization-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/cloudsealed/JIT-Optimization-Engine/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/cloudsealed/JIT-Optimization-Engine?style=flat)](https://github.com/cloudsealed/JIT-Optimization-Engine/stargazers)
+
+**⚡️ Fast, ergonomic JIT compilation for Python + FinOps‑aware anomaly detection**
+
+* Zero‑boilerplate JIT (`@jit`, `@jitdataclass`) with kwargs & f‑strings support.
+* AI Cost Firewall GitHub Action that blocks costly PRs and posts viral comments.
+* Optional Numba – works out‑of‑the‑box without it.
+* Extensible – plug in custom risk rules or SIMD C# kernels.
+
 **Stop AWS Bill Shocks BEFORE they happen.**
 
 CloudSealed JIT is the only FinOps engine that runs **inside your CI/CD pipeline in real-time**. Using Numba-accelerated Streaming MAD algorithms (Machine Learning), it intercepts and blocks anomalous cloud deployments in microseconds, before they hit production and drain your budget.
