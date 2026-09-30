@@ -11,6 +11,8 @@ Public API:
 
 from .parsing import BillingSeries, ParseError, parse_billing_csv
 from .analysis import AnalysisResult, analyze
+from .compiler import jit
+from .dataclass_compiler import jitdataclass
 
 __version__ = "0.3.0"
 
@@ -20,5 +22,7 @@ __all__ = [
     "parse_billing_csv",
     "AnalysisResult",
     "analyze",
+    "jit",
+    "jitdataclass",
     "__version__",
 ]
