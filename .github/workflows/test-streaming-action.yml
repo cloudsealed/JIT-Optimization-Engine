@@ -1,0 +1,23 @@
+name: Test Streaming Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      simulated_cost:
+        description: 'Custos simulado da pipeline (ex: 2.50)'
+        required: true
+        default: '1.50'
+
+jobs:
+  test-cost-profiler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run CloudSealed Profiler
+        uses: ./streaming-profiler
+        with:
+          current_cost_usd: ${{ github.event.inputs.simulated_cost }}
+          window_size: 10
+          z_threshold: 3.5
