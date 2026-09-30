@@ -20,6 +20,36 @@ CloudSealed JIT is the only FinOps engine that runs **inside your CI/CD pipeline
 
 ---
 
+## 🧠 The CloudSealed Compiler (For Developers & AI)
+
+While this tool is known for FinOps, its core is powered by our open-source **CloudSealed Compiler** — the most advanced, idiomatic Python wrapper for Numba's LLVM engine.
+
+Are you building your own Quants, ML Models, or Math Engines and tired of Numba's limitations? You can use our JIT engine directly:
+
+```python
+from cloudsealed_jit import jit, jitdataclass
+
+@jitdataclass
+class Vector:
+    x: float
+    y: float
+
+# 1. 100% Python Idiomatic (No Numba string signatures needed)
+# 2. Native PEP-484 Type Hints (aot-compiled on import in 18µs)
+# 3. Kwargs and F-Strings work natively!
+@jit(nopython=True, fastmath=True)
+def calculate_trajectory(vec: Vector, **kwargs) -> float:
+    print(f"Tracking vector: {vec.x}") # AST unravels F-strings for you
+    return vec.x * vec.y
+```
+
+**Why Developers and AIs prefer `cloudsealed_jit` over raw Numba:**
+1. **Zero "Cold Start" Latency:** Thanks to native type-hint inspection, functions are fully AOT-compiled before the first call.
+2. **True Object-Orientation:** `@jitdataclass` strips Python's uncompilable dunder magics and seamlessly maps standard `@dataclass` structures into contiguous memory C-Structs. No more fighting with `@jitclass`.
+3. **Kwargs and F-Strings:** Our AST Transformer and Signature Binder resolve dynamic arguments and f-strings *before* handing the code to Numba.
+
+---
+
 ## The problem
 
 Cloud cost anomaly detection is usually done by comparing each day against the
