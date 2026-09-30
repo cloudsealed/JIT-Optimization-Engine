@@ -21,6 +21,10 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Install Dependencies
+      shell: bash
+      run: pip install numpy numba
+
     - name: Run Pipeline Profiler
       shell: bash
       run: |
@@ -28,13 +32,10 @@ runs:
         python -c "
         import sys
         import os
-        sys.path.insert(0, '${{ github.action_path }}')
-        try:
-            from cloudsealed_jit.pipeline_profiler import PipelineCostProfiler
-        except ImportError:
-            print('Installing requirements...')
-            os.system('pip install numpy numba')
-            from cloudsealed_jit.pipeline_profiler import PipelineCostProfiler
+        # github.action_path aponta para repo/streaming-profiler, então voltamos 1 diretório
+        sys.path.insert(0, os.path.abspath(os.path.join('${{ github.action_path }}', '..')))
+        
+        from cloudsealed_jit.pipeline_profiler import PipelineCostProfiler
 
         profiler = PipelineCostProfiler(window_size=${{ inputs.window_size }}, z_threshold=${{ inputs.z_threshold }})
         cost = float('${{ inputs.current_cost_usd }}')
