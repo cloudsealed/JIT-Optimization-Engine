@@ -1,0 +1,19 @@
+name: Demo AI Cost Firewall
+
+on:
+  pull_request:
+    paths:
+      - 'examples/**'
+
+jobs:
+  firewall-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run CloudSealed AI Firewall
+        uses: ./streaming-profiler
+        with:
+          # Simulando um desenvolvedor subindo um código que gasta $2.500 na nuvem
+          current_cost_usd: '2500.00'
