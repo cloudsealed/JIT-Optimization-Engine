@@ -28,28 +28,55 @@ runs:
     - name: Run Pipeline Profiler
       shell: bash
       run: |
-        echo "[*] Initializing CloudSealed JIT Pipeline Profiler..."
         python -c "
-        import sys
-        import os
-        # github.action_path aponta para repo/streaming-profiler, então voltamos 1 diretório
+        import sys, os
         sys.path.insert(0, os.path.abspath(os.path.join('${{ github.action_path }}', '..')))
-        
         from cloudsealed_jit.pipeline_profiler import PipelineCostProfiler
 
         profiler = PipelineCostProfiler(window_size=${{ inputs.window_size }}, z_threshold=${{ inputs.z_threshold }})
         cost = float('${{ inputs.current_cost_usd }}')
         result = profiler.observe_and_score(cost)
         
-        print(f'\n--- Cost Profile ---')
-        print(f'Observed Cost: ${cost}')
-        print(f'Z-Score: {result.get(\"z_score\")}')
-        print(f'Anomaly Detected: {result.get(\"is_anomaly\")}')
+        is_anomaly = result.get('is_anomaly')
+        z_score = result.get('z_score')
         
-        if result.get('is_anomaly'):
-            print('::error::[CloudSealed] Massive Cost Anomaly Detected! Halting pipeline to prevent unexpected billing.')
-            sys.exit(1)
+        # Gerar Relatório Visual em Markdown
+        status_icon = '🛑 **BLOQUEADO: Anomalia Severa**' if is_anomaly else '✅ **Custo Normal**'
+        
+        report = f'''
+        ## 🛡️ CloudSealed JIT Cost Profiler
+        
+        {status_icon}
+        
+        | Métrica | Valor |
+        |---|---|
+        | Custo Identificado | **${cost:.2f}** |
+        | Z-Score (Desvio) | **{z_score:.2f}** |
+        | Threshold Permitido | {${{ inputs.z_threshold }}} |
+        
+        > Protegido por [CloudSealed JIT-Optimization-Engine](https://github.com/cloudsealed/JIT-Optimization-Engine).
+        '''
+        
+        with open('cloudsealed_report.md', 'w') as f:
+            f.write(report)
+            
+        if is_anomaly:
+            print('::error::[CloudSealed] Cost Anomaly Detected!')
+            with open('exit_status.txt', 'w') as f: f.write('1')
         else:
-            print('Cost is within historical bounds. Proceeding.')
-            sys.exit(0)
+            with open('exit_status.txt', 'w') as f: f.write('0')
         "
+
+    - name: Post PR Comment
+      if: github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} --body-file cloudsealed_report.md || echo "Não foi possível postar no PR."
+
+    - name: Enforce Pipeline Halt
+      shell: bash
+      run: |
+        STATUS=\$(cat exit_status.txt)
+        exit \$STATUS
