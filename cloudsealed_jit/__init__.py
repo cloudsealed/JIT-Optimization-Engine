@@ -14,7 +14,7 @@ from .analysis import AnalysisResult, analyze
 from .compiler import jit, compilation_stats, reset_compilation_stats, CloudSealedCompileError
 from .dataclass_compiler import jitdataclass
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     "BillingSeries",
