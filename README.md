@@ -33,33 +33,108 @@ CloudSealed JIT is the only FinOps engine that runs **inside your CI/CD pipeline
 
 ---
 
-## 🧠 The CloudSealed Compiler (For Developers & AI)
+## 🧠 The CloudSealed Compiler
 
-While this tool is known for FinOps, its core is powered by our open-source **CloudSealed Compiler** — the most advanced, idiomatic Python wrapper for Numba's LLVM engine.
+While this tool is known for FinOps, its core is an open-source **ergonomic JIT compiler** that bridges the gap between idiomatic Python and Numba's nopython mode. If you're building numerical engines and tired of Numba's limitations, you can use it directly.
 
-Are you building your own Quants, ML Models, or Math Engines and tired of Numba's limitations? You can use our JIT engine directly:
+### The problem with raw Numba
+
+```python
+# ✗ Raw Numba — this fails at compile time
+@njit
+def process(data: np.ndarray, label: str) -> float:
+    result = [x * 2 for x in data]   # ✗ list comprehensions not supported
+    print(f"Processing {label}")      # ✗ f-strings not supported
+    return result[0]
+
+# ✓ CloudSealed @jit — idiomatic Python, LLVM speed
+from cloudsealed_jit import jit, jitdataclass
+
+@jit()
+def process(data: np.ndarray, label: str) -> float:
+    result = [x * 2 for x in data]   # ✓ rewritten to explicit loop at AST level
+    print(f"Processing {label}")      # ✓ rewritten to str() + concatenation
+    return result[0]
+```
+
+### What the compiler does
+
+The `@jit` decorator applies four transforms before handing code to Numba's LLVM backend:
+
+| Transform | Problem solved | How |
+|---|---|---|
+| **F-string rewriter** | `f"{x:.2f}"` crashes in nopython | AST: `JoinedStr` → `str(x) + …` |
+| **List comp rewriter** | `[x for x in arr]` not allowed | AST: `ListComp` → `init + for loop + append` |
+| **PEP-484 type mapper** | Manual string signatures (`"float64[:](float64)"`) | Reads `__annotations__`, maps to Numba IR types |
+| **Kwargs unroller** | `func(a=1, b=2)` not supported in nopython | Wraps compiled fn with `inspect.Signature.bind` |
+
+Type mapping supports: `int`, `float`, `bool`, `str`, numpy scalars, `np.ndarray`, `Optional[T]`, `List[T]`, `Tuple[T, ...]`, `Dict[K, V]`, and any `@jitdataclass`.
+
+### @jitdataclass — Python dataclasses as Numba C-structs
 
 ```python
 from cloudsealed_jit import jit, jitdataclass
 
 @jitdataclass
-class Vector:
+class Vec2:
     x: float
     y: float
 
-# 1. 100% Python Idiomatic (No Numba string signatures needed)
-# 2. Native PEP-484 Type Hints (aot-compiled on import in 18µs)
-# 3. Kwargs and F-Strings work natively!
-@jit(nopython=True, fastmath=True)
-def calculate_trajectory(vec: Vector, **kwargs) -> float:
-    print(f"Tracking vector: {vec.x}") # AST unravels F-strings for you
-    return vec.x * vec.y
+@jit()
+def magnitude(v: Vec2) -> float:
+    return (v.x ** 2 + v.y ** 2) ** 0.5
+
+v = Vec2(3.0, 4.0)
+magnitude(v)  # → 5.0, fully compiled to machine code
 ```
 
-**Why Developers and AIs prefer `cloudsealed_jit` over raw Numba:**
-1. **Zero "Cold Start" Latency:** Thanks to native type-hint inspection, functions are fully AOT-compiled before the first call.
-2. **True Object-Orientation:** `@jitdataclass` strips Python's uncompilable dunder magics and seamlessly maps standard `@dataclass` structures into contiguous memory C-Structs. No more fighting with `@jitclass`.
-3. **Kwargs and F-Strings:** Our AST Transformer and Signature Binder resolve dynamic arguments and f-strings *before* handing the code to Numba.
+`@jitdataclass` converts a standard Python dataclass into a Numba `@jitclass` (contiguous memory C-struct), preserving default values, compiling user-defined methods, and resolving nested `@jitdataclass` fields.
+
+### Benchmarks
+
+Measured on x86-64 Linux, Python 3.11 (Numba optional — pure-Python fallback is automatic):
+
+| Operation | Time |
+|---|---|
+| F-string AST rewrite | ~680 µs (p50) |
+| List comprehension AST rewrite | ~680 µs (p50) |
+| Kwargs dispatch overhead | ~0.05 µs/call |
+
+Reproduce: `python benchmarks/compiler_benchmark.py`
+
+### Human-readable errors
+
+When Numba rejects a function, `CloudSealedCompileError` replaces the raw LLVM traceback with a plain-English message:
+
+```
+CloudSealed compilation failed for 'my_func'.
+Numba error: ...
+Possible causes:
+  → Sets are not supported in Numba nopython mode. Use a typed List or array instead.
+Tip: run with NUMBA_DISABLE_JIT=1 to bypass compilation and debug in pure Python.
+```
+
+### Compilation stats
+
+```python
+from cloudsealed_jit import compilation_stats
+
+stats = compilation_stats()
+# [{'name': 'my_module.my_func', 'compile_time_us': 18.3,
+#   'from_cache': True, 'signature': 'float64(float64, float64)'}]
+```
+
+### Why not Cython / mypyc / raw Numba?
+
+| | cloudsealed @jit | raw Numba @njit | Cython | mypyc |
+|---|---|---|---|---|
+| Type hints drive compilation | ✓ | ✗ (manual strings) | ✓ (pxd files) | ✓ |
+| f-strings | ✓ (AST rewrite) | ✗ | ✓ | ✓ |
+| List comprehensions | ✓ (AST rewrite) | ✗ | ✓ | ✓ |
+| Kwargs support | ✓ | ✗ | ✓ | ✓ |
+| Pure Python fallback | ✓ | ✗ | ✗ | ✗ |
+| Compilation build step | ✗ | ✗ | ✓ | ✓ |
+| Targets LLVM / SIMD | ✓ | ✓ | ✗ | ✗ |
 
 ---
 
