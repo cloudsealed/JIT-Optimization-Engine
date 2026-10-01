@@ -9,7 +9,15 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{booktabs}
-\usepackage{hyperref}
+\usepackage[
+  pdftitle={Bridging the Ergonomics Gap in Python JIT Compilation: AST-Level Source Transformation for Numba},
+  pdfauthor={Rodrigo Martinez Pinto},
+  pdfkeywords={just-in-time compilation, LLVM, Python, AST, Numba, PEP 484, source transformation},
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=blue!70!black,
+  urlcolor=blue!70!black
+]{hyperref}
 \usepackage{microtype}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, shapes.geometric, positioning, fit, backgrounds}
@@ -67,7 +75,8 @@ producing actionable error messages. A dataclass-to-jitclass bridge and a
 per-function compilation profiler complete the toolchain. The system is
 available as an open-source package, tested with a 38-case test suite,
 and imposes fewer than 1.4\,ms of one-time overhead per function at
-decoration time.
+decoration time. A preprint of this work is available at
+\url{https://arxiv.org/abs/PLACEHOLDER}.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -448,7 +457,7 @@ comprehension.
 \centering
 \begin{tabular}{lrr}
 \toprule
-Transform & Median (µs) & p99 (µs) \\
+Transform & Median (\textmu s) & p99 (\textmu s) \\
 \midrule
 FStringTransformer       &  681 & 1,650 \\
 ListCompTransformer      &  682 & 1,380 \\
@@ -472,7 +481,7 @@ kwargs unroller for a trivial compiled function (\texttt{return a + b}).
 \centering
 \begin{tabular}{lr}
 \toprule
-Call style & Median (µs/call) \\
+Call style & Median (\textmu s/call) \\
 \midrule
 Positional args (baseline) & 0.070 \\
 Keyword args               & 0.121 \\
