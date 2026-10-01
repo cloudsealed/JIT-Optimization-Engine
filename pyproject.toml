@@ -4,35 +4,49 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloudsealed-jit"
-version = "0.4.1"
-description = "Detect structural waste in cloud billing exports using robust day-of-week baselines"
+version = "0.4.2"
+description = "Ergonomic Numba JIT compiler + cloud billing anomaly detection. AST transforms for f-strings/list-comps, PEP-484 type-hint→Numba IR mapping, @jitdataclass, and rolling-median MAD anomaly detection for AWS/GCP/Azure billing exports."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Rodrigo Martinez Pinto" }]
-keywords = ["finops", "cloud-cost", "aws", "gcp", "azure", "anomaly-detection", "billing"]
+authors = [{ name = "Rodrigo Martinez Pinto", email = "contact@cloudsealed.com" }]
+maintainers = [{ name = "Rodrigo Martinez Pinto", email = "contact@cloudsealed.com" }]
+keywords = [
+    "numba", "jit", "llvm", "compiler", "ast", "ast-transform",
+    "jit-compiler", "nopython", "type-hints", "pep484",
+    "finops", "cloud-cost", "anomaly-detection", "billing",
+    "aws", "gcp", "azure", "focus", "cost-optimization",
+    "performance", "scientific-computing", "numerical"
+]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: System Administrators",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Pre-processors",
     "Topic :: System :: Monitoring",
     "Topic :: Office/Business :: Financial",
+    "Typing :: Typed",
 ]
 dependencies = ["numpy>=1.24"]
 
 [project.optional-dependencies]
-# Native compilation of the baseline kernels. Optional: the package falls
-# back to pure NumPy when numba is unavailable.
 jit = ["numba>=0.57"]
 api = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "pydantic>=2.6"]
 dev = ["pytest>=7.4", "httpx>=0.27"]
-# Extra detectors used only by the state-of-the-art comparison benchmarks
-# (benchmarks/sota_comparison.py, benchmarks/montecarlo_robustness.py). The
-# core package and the headline masking benchmark need none of these.
 bench = ["scikit-learn>=1.3", "statsmodels>=0.14", "scipy>=1.10"]
 
 [project.scripts]
@@ -40,12 +54,13 @@ cloudsealed-jit = "cloudsealed_jit.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/cloudsealed/JIT-Optimization-Engine"
+Documentation = "https://github.com/cloudsealed/JIT-Optimization-Engine#readme"
 Source = "https://github.com/cloudsealed/JIT-Optimization-Engine"
 Issues = "https://github.com/cloudsealed/JIT-Optimization-Engine/issues"
+Changelog = "https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/CHANGELOG.md"
+"Release Notes" = "https://github.com/cloudsealed/JIT-Optimization-Engine/releases"
 
 [tool.setuptools.packages.find]
-# Pinned to the flat layout: the legacy top-level src/ directory would
-# otherwise make setuptools auto-detect a src-layout project.
 where = ["."]
 include = ["cloudsealed_jit*"]
 namespaces = false
