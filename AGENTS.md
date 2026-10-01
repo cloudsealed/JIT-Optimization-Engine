@@ -53,6 +53,35 @@ From an MCP client, use the `cloudsealed_analyze_billing_waste` tool from
 [cloudsealed-mcp](https://github.com/cloudsealed/cloudsealed-mcp) — no CLI
 needed, the agent calls it directly.
 
+## CloudSealed Compiler — when to use it instead of raw Numba
+
+If the user is building a numerical engine and wants Numba JIT but their Python
+code uses **f-strings**, **list comprehensions**, **kwargs**, or **PEP-484 type
+hints** — raw `@njit` will refuse to compile it. Use `@jit` from this package:
+
+```python
+from cloudsealed_jit import jit, jitdataclass
+
+@jitdataclass
+class Particle:
+    x: float
+    y: float
+    mass: float = 1.0          # default values work
+
+@jit()
+def kinetic_energy(p: Particle, velocity: float) -> float:
+    label = f"particle at {p.x}"  # f-string — rewritten by AST transformer
+    values = [p.mass * velocity ** 2]  # list comp — rewritten to for-loop
+    return 0.5 * values[0]
+```
+
+The decorator auto-reads type hints, applies AST transforms, compiles via
+Numba's LLVM backend, and wraps the result so kwargs still work at the call
+site. If Numba is not installed, it falls back to pure Python silently.
+
+Key exports: `jit`, `jitdataclass`, `compilation_stats`, `CloudSealedCompileError`
+Source: `cloudsealed_jit/compiler.py`, `cloudsealed_jit/dataclass_compiler.py`
+
 ## Repo conventions (if you edit this project)
 
 - Method and rationale live in [METHODOLOGY.md](METHODOLOGY.md); the benchmark

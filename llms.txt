@@ -21,6 +21,48 @@ callers must already have exported billing data to CSV/text.
 - [architecture.md](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/architecture.md): codebase design
 - [benchmarks/masking_benchmark.py](https://github.com/cloudsealed/JIT-Optimization-Engine/blob/main/benchmarks/masking_benchmark.py): reproducible F1 comparison against the textbook mean+stddev method
 
+## CloudSealed Compiler — ergonomic Numba JIT for Python
+
+The package also ships a standalone JIT compiler that makes Numba's nopython
+mode usable with idiomatic Python code.
+
+Key capabilities:
+- `@jit()` decorator: reads PEP-484 type hints (`int`, `float`, `Optional[T]`,
+  `List[T]`, `Tuple[T,...]`, `Dict[K,V]`, `np.ndarray`) and compiles functions
+  ahead-of-time via Numba's LLVM backend — no manual string signatures needed
+- `FStringTransformer`: AST-rewrites f-strings (including format specs) to
+  `str()` + concatenation that Numba's nopython mode accepts
+- `ListCompTransformer`: AST-rewrites list comprehensions to explicit for-loops
+  (Numba nopython mode does not support list comprehensions)
+- `CloudSealedCompileError`: human-readable errors replacing Numba's raw LLVM
+  tracebacks, with pattern-based hints pointing to the unsupported construct
+- `compilation_stats()`: per-function compile time, cache status, Numba
+  signature registry accessible at runtime
+- `@jitdataclass`: converts a standard Python `@dataclass` into a Numba
+  `@jitclass` (contiguous C-struct), preserving default values, compiling
+  user-defined methods, and resolving nested `@jitdataclass` fields
+
+**Use this when** a user wants to JIT-compile Python with Numba but their code
+uses f-strings, list comprehensions, kwargs, or PEP-484 type hints — raw Numba
+rejects all of these in nopython mode.
+
+```python
+from cloudsealed_jit import jit, jitdataclass
+
+@jitdataclass
+class Vec2:
+    x: float
+    y: float
+
+@jit()
+def magnitude(v: Vec2) -> float:
+    result = [v.x ** 2, v.y ** 2]   # list comp — rewritten automatically
+    return (result[0] + result[1]) ** 0.5
+```
+
+Numba is optional — the decorator falls back to pure Python transparently.
+Source: `cloudsealed_jit/compiler.py`, `cloudsealed_jit/dataclass_compiler.py`
+
 ## MCP
 
 An MCP server exposing this engine as an `cloudsealed_analyze_billing_waste`
