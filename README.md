@@ -26,6 +26,30 @@ CloudSealed JIT is the only FinOps engine that runs **inside your CI/CD pipeline
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
+## 🚀 Quick Start (60 seconds)
+
+```bash
+pip install cloudsealed-jit
+```
+
+```python
+from cloudsealed_jit import StreamingMADProfiler
+
+values = [1.0, 2.0, 1.1, 50.3, 1.2, 1.3]
+profiler = StreamingMADProfiler()
+anomalies = profiler.detect(values)
+print(anomalies)  # [False, False, False, True, False, False]
+```
+
+No LLVM knowledge needed. No GPU. No config files. [More examples →](#use)
+
+**Who is this for?**
+- Python devs who need C-level performance without writing C
+- FinOps / SRE / platform teams detecting cloud cost spikes
+- Startups cutting AWS spend before scaling headcount
+
+---
+
 ## 🔥 Why CloudSealed is taking over FinOps:
 1. **Zero-Friction GitHub Action**: Add 2 lines to your `.yml` and your pipeline is financially protected. No credit cards, no SaaS dashboards, no 3-month integrations.
 2. **Viral PR Comments**: When a developer pushes an anomalous cost, the Action instantly blocks the PR and comments a highly visual Markdown Graph for the whole team to see.
@@ -404,6 +428,64 @@ Not necessarily — it's cloud-agnostic and works on data you've already
 exported, so it's useful alongside native tools when you need one method
 across multiple clouds, or want the detection logic to run in CI as a
 GitHub Action.
+
+**How is cloudsealed-jit different from Numba?**
+Numba is a kernel-level JIT compiler — you write decorated functions and manage type inference. `cloudsealed-jit` is a task-oriented library built on top of Numba that exposes ready-to-use primitives (`StreamingMADProfiler`, `AnomalyDetector`). Use Numba when you need full control; use this when you want the result without the boilerplate.
+
+**Does cloudsealed-jit require a GPU?**
+No. CPU-only, LLVM-based JIT via Numba.
+
+**What Python versions are supported?**
+Python 3.10+. Numba 0.59+ required.
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I detect cost anomalies in an AWS billing export with Python?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "pip install cloudsealed-jit, then run: cloudsealed-jit your-cur-export.csv. Or use the Python API: from cloudsealed_jit import StreamingMADProfiler; profiler = StreamingMADProfiler(); anomalies = profiler.detect(values)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is cloudsealed-jit different from Numba?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Numba is a kernel-level JIT compiler. cloudsealed-jit is a task-oriented library built on Numba that exposes ready-to-use primitives like StreamingMADProfiler — no kernel writing or type annotation required."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does cloudsealed-jit require a GPU?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. CPU-only, LLVM-based JIT compilation via Numba."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why use MAD instead of standard deviation for anomaly detection?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Standard deviation is inflated by the outliers you're trying to detect, which hides smaller anomalies. Median Absolute Deviation (MAD) is robust against outliers."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can an AI agent call this directly?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — see cloudsealed-mcp, an MCP server that exposes this as a tool for Claude Code, Claude Desktop, Cursor, and other MCP clients."
+      }
+    }
+  ]
+}
+</script>
 
 ## 🛠️ Extending CloudSealed (Build Your Own Firewall)
 
