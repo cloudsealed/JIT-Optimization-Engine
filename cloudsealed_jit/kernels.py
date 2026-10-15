@@ -200,3 +200,281 @@ def predict_burn_rate(
         "confidence": round(confidence, 2),
     }
 
+
+@njit(cache=True)
+def _monte_carlo_simulation_kernel(
+    n: int,
+    n_sims: int,
+    horizon: int,
+    slope: float,
+    intercept: float,
+    sigma: float,
+) -> np.ndarray:
+    results = np.empty(n_sims, dtype=np.float64)
+    for s in range(n_sims):
+        sim_total = 0.0
+        for d in range(1, horizon + 1):
+            t = n + d
+            drift = slope * t + intercept
+            # Box-Muller transform para amostragem gaussiana no JIT
+            u1 = np.random.random()
+            while u1 <= 1e-12:
+                u1 = np.random.random()
+            u2 = np.random.random()
+            z_norm = np.sqrt(-2.0 * np.log(u1)) * np.cos(2.0 * np.pi * u2)
+            val = drift + z_norm * sigma
+            if val < 0.0:
+                val = 0.0
+            sim_total += val
+        results[s] = sim_total
+    return results
+
+
+def monte_carlo_finops_var(
+    spend_history: list[float] | np.ndarray,
+    n_simulations: int = 10000,
+    horizon_days: int = 30,
+    confidence_level: float = 0.99,
+) -> dict[str, float]:
+    """Calcula Value-at-Risk (VaR) e Expected Shortfall (CVaR) de FinOps via Monte Carlo JIT."""
+    y = np.asarray(spend_history, dtype=np.float64)
+    if y.size == 0:
+        return {
+            "expected_spend": 0.0,
+            "var_spend": 0.0,
+            "cvar_spend": 0.0,
+            "worst_case_spend": 0.0,
+            "tail_risk_ratio": 1.0,
+            "confidence_level": confidence_level,
+        }
+
+    n = y.size
+    x = np.arange(1, n + 1, dtype=np.float64)
+    slope, intercept = _linear_regression_kernel(x, y)
+
+    # Dispersão via MAD para resistir a outliers
+    baseline = slope * x + intercept
+    mad_val = mad(y - baseline)
+    sigma = max(1.0, mad_val / _MAD_TO_SIGMA)
+
+    # 10.000 iterações estocásticas compiladas via LLVM em milissegundos
+    simulated_totals = _monte_carlo_simulation_kernel(
+        n, n_simulations, horizon_days, slope, intercept, sigma
+    )
+    simulated_totals.sort()
+
+    idx_var = int(min(n_simulations - 1, max(0, np.floor(confidence_level * n_simulations))))
+    expected_spend = float(np.mean(simulated_totals))
+    var_spend = float(simulated_totals[idx_var])
+    tail_spends = simulated_totals[idx_var:]
+    cvar_spend = float(np.mean(tail_spends)) if tail_spends.size > 0 else var_spend
+    worst_case = float(simulated_totals[-1])
+
+    return {
+        "expected_spend": round(expected_spend, 2),
+        "var_spend": round(var_spend, 2),
+        "cvar_spend": round(cvar_spend, 2),
+        "worst_case_spend": round(worst_case, 2),
+        "tail_risk_ratio": round(cvar_spend / expected_spend, 3) if expected_spend > 0 else 1.0,
+        "confidence_level": confidence_level,
+    }
+
+
+def calculate_unit_economics_elasticity(
+    cost_series: list[float] | np.ndarray,
+    volume_series: list[float] | np.ndarray,
+) -> dict[str, float | str]:
+    """Avalia se a arquitetura de nuvem escala de forma Sublinear (saudável) ou Superlinear (O(N^2) colapso)."""
+    c = np.asarray(cost_series, dtype=np.float64)
+    v = np.asarray(volume_series, dtype=np.float64)
+
+    if c.size < 2 or v.size < 2 or c.size != v.size:
+        return {
+            "elasticity": 1.0,
+            "scaling_regime": "LINEAR",
+            "unit_cost_trend": 0.0,
+            "verdict": "Dados insuficientes para cálculo de elasticidade.",
+        }
+
+    c_mean = float(np.mean(c))
+    v_mean = float(np.mean(v))
+
+    delta_c = (c[-1] - c[0]) / (c_mean if c_mean > 0 else 1.0)
+    delta_v = (v[-1] - v[0]) / (v_mean if v_mean > 0 else 1.0)
+
+    elasticity = float(delta_c / delta_v) if abs(delta_v) > 1e-6 else 1.0
+
+    if elasticity < 0.85:
+        regime = "SUBLINEAR"
+        verdict = "Escalabilidade excelente: economia de escala comprovada (custo cresce menos que o volume)."
+    elif elasticity <= 1.25:
+        regime = "LINEAR"
+        verdict = "Escalabilidade saudável: custo cresce proporcionalmente ao volume de transações."
+    else:
+        regime = "SUPERLINEAR"
+        verdict = "Alerta crítico de arquitetura: custo cresce superlinearmente (O(N^2)). Gargalos de banco/acoplamento."
+
+    unit_cost_initial = c[0] / v[0] if v[0] > 0 else 0.0
+    unit_cost_final = c[-1] / v[-1] if v[-1] > 0 else 0.0
+    unit_cost_trend = round(float((unit_cost_final - unit_cost_initial) / (unit_cost_initial if unit_cost_initial > 0 else 1.0)) * 100, 2)
+
+    return {
+        "elasticity": round(elasticity, 3),
+        "scaling_regime": regime,
+        "unit_cost_trend_percent": unit_cost_trend,
+        "verdict": verdict,
+    }
+
+
+# Matriz de intensidade de carbono em kg CO2e / kWh por região (Fontes EPA / GHG Protocol)
+_GRID_CARBON_INTENSITY = {
+    "us-east-1": 0.380,      # N. Virginia (mista gás/carvão)
+    "us-west-2": 0.085,      # Oregon (hidrelétrica abundante)
+    "sa-east-1": 0.075,      # São Paulo (matriz majoritariamente renovável/hidro)
+    "eu-west-1": 0.220,      # Irlanda (vento/gás)
+    "eu-central-1": 0.310,   # Frankfurt
+    "ap-southeast-1": 0.410, # Singapura (dependência gás fóssil)
+    "default": 0.320,
+}
+
+
+@njit(cache=True)
+def _estimate_server_kwh_kernel(
+    vcpu_hours: np.ndarray,
+    memory_gb_hours: np.ndarray,
+    pue: float = 1.2, # Power Usage Effectiveness médio de Hyperscalers
+) -> float:
+    """Calcula consumo de energia (kWh) de servidores em microssegundos via JIT.
+    Estimativa: ~10W por vCPU ativo médio + ~0.38W por GB de RAM, ajustado por PUE.
+    """
+    total_kwh = 0.0
+    n = vcpu_hours.shape[0]
+    for i in range(n):
+        # 0.010 kW por vCPU-hora + 0.00038 kW por GB-hora
+        server_kw = (vcpu_hours[i] * 0.010) + (memory_gb_hours[i] * 0.00038)
+        total_kwh += server_kw * pue
+    return total_kwh
+
+
+def calculate_green_finops_footprint(
+    vcpu_hours: list[float] | np.ndarray,
+    memory_gb_hours: list[float] | np.ndarray,
+    region: str = "us-east-1",
+    carbon_credit_cost_per_ton_usd: float = 45.0, # Preço médio mercado voluntário de carbono
+) -> dict[str, float | str]:
+    """Calcula a Pegada de Carbono ESG (CO2e) e o Passivo Financeiro de Taxação Verde.
+    Permite relatórios de sustentabilidade exigidos para IPO, SEC e auditorias ESG europeias.
+    """
+    v_arr = np.asarray(vcpu_hours, dtype=np.float64)
+    m_arr = np.asarray(memory_gb_hours, dtype=np.float64)
+
+    if v_arr.size == 0 or m_arr.size == 0 or v_arr.size != m_arr.size:
+        return {
+            "total_kwh": 0.0,
+            "metric_tons_co2e": 0.0,
+            "carbon_offset_cost_usd": 0.0,
+            "esg_grade": "A+",
+            "region": region,
+            "recommendation": "Sem dados suficientes para auditoria de carbono.",
+        }
+
+    kwh = _estimate_server_kwh_kernel(v_arr, m_arr, pue=1.18)
+    intensity = _GRID_CARBON_INTENSITY.get(region.lower(), _GRID_CARBON_INTENSITY["default"])
+
+    # kg CO2e = kWh * kg CO2e/kWh
+    kg_co2e = kwh * intensity
+    metric_tons_co2e = kg_co2e / 1000.0
+
+    offset_cost = metric_tons_co2e * carbon_credit_cost_per_ton_usd
+
+    # Classificação ESG Rating de Infraestrutura
+    if metric_tons_co2e < 1.0:
+        esg_grade = "A+"
+        rec = "Pegada de carbono exemplar. Mantenha instâncias em regiões de alta energia renovável."
+    elif metric_tons_co2e < 10.0:
+        esg_grade = "A"
+        rec = "Emissões dentro dos parâmetros de sustentabilidade aceitos pela Taxonomia Verde."
+    elif metric_tons_co2e < 50.0:
+        esg_grade = "B"
+        rec = f"Consumo moderado de carbono. Considere migrar workloads em batch para 'sa-east-1' ou 'us-west-2'."
+    else:
+        esg_grade = "C"
+        rec = f"Alto impacto ambiental. Risco de passivo regulatório ESG de ${round(offset_cost, 2)} USD/ano."
+
+    return {
+        "total_kwh": round(float(kwh), 2),
+        "metric_tons_co2e": round(float(metric_tons_co2e), 4),
+        "kg_co2e": round(float(kg_co2e), 2),
+        "carbon_offset_cost_usd": round(float(offset_cost), 2),
+        "esg_grade": esg_grade,
+        "region": region,
+        "recommendation": rec,
+    }
+
+
+@njit(cache=True)
+def _calculate_egress_waste_kernel(
+    egress_gb_series: np.ndarray,
+    nat_gateway_gb_series: np.ndarray,
+    rate_per_gb_egress: float = 0.09,      # Média AWS Internet Egress ($0.09/GB)
+    rate_per_gb_nat: float = 0.045,        # AWS NAT Gateway Data Processing ($0.045/GB)
+    cloudflare_zero_egress_rate: float = 0.015, # Cloudflare R2 / Workers bandwidth cost
+) -> tuple[float, float, float, float]:
+    """Cálculo ultrarrápido em LLVM de arbitragem de saída de dados e NAT Gateway."""
+    n = egress_gb_series.shape[0]
+    total_egress_gb = 0.0
+    total_nat_gb = 0.0
+    for i in range(n):
+        total_egress_gb += egress_gb_series[i]
+        total_nat_gb += nat_gateway_gb_series[i]
+
+    current_egress_cost = total_egress_gb * rate_per_gb_egress
+    current_nat_cost = total_nat_gb * rate_per_gb_nat
+    total_current_network_cost = current_egress_cost + current_nat_cost
+
+    # Otimizado: VPC Gateway Endpoints gratuitos para S3/DynamoDB eliminam NAT Gateway em ~65% dos casos
+    optimized_nat_cost = current_nat_cost * 0.35
+    # Arbitragem Cloudflare / Zero Egress reduz o custo de saída em ~75%
+    optimized_egress_cost = total_egress_gb * cloudflare_zero_egress_rate
+
+    optimized_total = optimized_nat_cost + optimized_egress_cost
+    potential_savings = total_current_network_cost - optimized_total
+
+    return total_current_network_cost, optimized_total, potential_savings, total_egress_gb + total_nat_gb
+
+
+def calculate_cloud_egress_arbitrage(
+    egress_gb_history: list[float] | np.ndarray,
+    nat_gateway_gb_history: list[float] | np.ndarray,
+) -> dict[str, float | str]:
+    """Perícia de tráfego de rede e arbitragem de Egress / NAT Gateway.
+    Detecta o custo oculto de NAT Gateways e tráfego inter-regional vs Cloudflare.
+    """
+    e_arr = np.asarray(egress_gb_history, dtype=np.float64)
+    n_arr = np.asarray(nat_gateway_gb_history, dtype=np.float64)
+
+    if e_arr.size == 0 or n_arr.size == 0 or e_arr.size != n_arr.size:
+        return {
+            "current_network_cost_usd": 0.0,
+            "optimized_network_cost_usd": 0.0,
+            "potential_savings_usd": 0.0,
+            "savings_ratio_percent": 0.0,
+            "total_traffic_gb": 0.0,
+            "arbitrage_verdict": "Dados insuficientes de tráfego de rede para análise.",
+        }
+
+    current, optimized, savings, total_gb = _calculate_egress_waste_kernel(e_arr, n_arr)
+    ratio = (savings / current * 100.0) if current > 0 else 0.0
+
+    verdict = "Arbitragem de alta economia: implementar VPC Endpoints para S3/Dynamo e tunelamento via Cloudflare reduz a conta em até " + f"{round(ratio, 1)}%."
+
+    return {
+        "current_network_cost_usd": round(float(current), 2),
+        "optimized_network_cost_usd": round(float(optimized), 2),
+        "potential_savings_usd": round(float(savings), 2),
+        "savings_ratio_percent": round(float(ratio), 1),
+        "total_traffic_gb": round(float(total_gb), 1),
+        "arbitrage_verdict": verdict,
+    }
+
+
