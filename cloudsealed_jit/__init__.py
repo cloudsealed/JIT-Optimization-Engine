@@ -13,8 +13,9 @@ from .parsing import BillingSeries, ParseError, parse_billing_csv
 from .analysis import AnalysisResult, analyze
 from .compiler import jit, compilation_stats, reset_compilation_stats, CloudSealedCompileError
 from .dataclass_compiler import jitdataclass
+from .kernels import predict_burn_rate
 
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 __all__ = [
     "BillingSeries",
@@ -22,6 +23,7 @@ __all__ = [
     "parse_billing_csv",
     "AnalysisResult",
     "analyze",
+    "predict_burn_rate",
     "jit",
     "jitdataclass",
     "compilation_stats",

@@ -138,3 +138,65 @@ def modified_zscores(values: np.ndarray, baseline: np.ndarray) -> np.ndarray:
         return residuals / fallback
 
     return np.zeros_like(series)
+
+
+@njit(cache=True)
+def _linear_regression_kernel(x: np.ndarray, y: np.ndarray) -> tuple[float, float]:
+    """Cálculo ultrarrápido de regressão linear para burn rate via JIT."""
+    n = x.shape[0]
+    if n == 0:
+        return 0.0, 0.0
+    x_mean = 0.0
+    y_mean = 0.0
+    for i in range(n):
+        x_mean += x[i]
+        y_mean += y[i]
+    x_mean /= n
+    y_mean /= n
+
+    numerator = 0.0
+    denominator = 0.0
+    for i in range(n):
+        x_diff = x[i] - x_mean
+        numerator += x_diff * (y[i] - y_mean)
+        denominator += x_diff * x_diff
+
+    slope = numerator / denominator if denominator != 0.0 else 0.0
+    intercept = y_mean - slope * x_mean
+    return slope, intercept
+
+
+def predict_burn_rate(
+    spend_history: list[float] | np.ndarray,
+    days_ahead: int = 15,
+) -> dict[str, float]:
+    """Prediz o gasto acumulado futuro de nuvem usando o kernel robusto compilado por JIT."""
+    y = np.asarray(spend_history, dtype=np.float64)
+    if y.size == 0:
+        return {"current_total": 0.0, "projected_total": 0.0, "confidence": 0.0, "daily_trend": 0.0}
+
+    n = y.size
+    x = np.arange(1, n + 1, dtype=np.float64)
+
+    # 1. Obter tendência linear acelerada
+    slope, intercept = _linear_regression_kernel(x, y)
+
+    # 2. Resíduos e estabilidade (MAD)
+    baseline = slope * x + intercept
+    z = modified_zscores(y, baseline)
+    anomalies = np.sum(np.abs(z) >= 3.5)
+    confidence = max(0.60, min(0.99, 1.0 - (float(anomalies) / float(n))))
+
+    current_total = float(np.sum(y))
+    # Projeção futura
+    future_x = np.arange(n + 1, n + days_ahead + 1, dtype=np.float64)
+    future_y = np.maximum(0.0, slope * future_x + intercept)
+    projected_total = current_total + float(np.sum(future_y))
+
+    return {
+        "current_total": round(current_total, 2),
+        "projected_total": round(projected_total, 2),
+        "daily_trend": round(float(slope), 4),
+        "confidence": round(confidence, 2),
+    }
+
