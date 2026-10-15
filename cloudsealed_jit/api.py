@@ -208,6 +208,124 @@ def predict_burn_rate_endpoint(payload: PredictBurnRateRequest) -> PredictBurnRa
     return PredictBurnRateResponse(**res)
 
 
+class MonteCarloVaRRequest(BaseModel):
+    spendHistory: list[float]
+    nSimulations: int = 10000
+    horizonDays: int = 30
+    confidenceLevel: float = 0.99
+
+
+class MonteCarloVaRResponse(BaseModel):
+    expected_spend: float
+    var_spend: float
+    cvar_spend: float
+    worst_case_spend: float
+    tail_risk_ratio: float
+    confidence_level: float
+
+
+@app.post(
+    "/v1/finops/monte-carlo-var",
+    response_model=MonteCarloVaRResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def monte_carlo_var_endpoint(payload: MonteCarloVaRRequest) -> MonteCarloVaRResponse:
+    """Simulate 10,000 future paths in milliseconds using LLVM JIT to estimate Tail Risk (VaR & CVaR)."""
+    from .kernels import monte_carlo_finops_var
+    res = monte_carlo_finops_var(
+        payload.spendHistory,
+        n_simulations=payload.nSimulations,
+        horizon_days=payload.horizonDays,
+        confidence_level=payload.confidenceLevel,
+    )
+    return MonteCarloVaRResponse(**res)
+
+
+class UnitEconomicsRequest(BaseModel):
+    costSeries: list[float]
+    volumeSeries: list[float]
+
+
+class UnitEconomicsResponse(BaseModel):
+    elasticity: float
+    scaling_regime: str
+    unit_cost_trend_percent: float
+    verdict: str
+
+
+@app.post(
+    "/v1/finops/unit-economics",
+    response_model=UnitEconomicsResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def unit_economics_endpoint(payload: UnitEconomicsRequest) -> UnitEconomicsResponse:
+    """Evaluate whether cloud cost scales Sublinearly O(N) or Superlinearly O(N^2)."""
+    from .kernels import calculate_unit_economics_elasticity
+    res = calculate_unit_economics_elasticity(payload.costSeries, payload.volumeSeries)
+    return UnitEconomicsResponse(**res)
+
+
+class GreenFinOpsRequest(BaseModel):
+    vcpuHours: list[float]
+    memoryGbHours: list[float]
+    region: str = "us-east-1"
+    carbonCreditCostPerTonUsd: float = 45.0
+
+
+class GreenFinOpsResponse(BaseModel):
+    total_kwh: float
+    metric_tons_co2e: float
+    kg_co2e: float
+    carbon_offset_cost_usd: float
+    esg_grade: str
+    region: str
+    recommendation: str
+
+
+@app.post(
+    "/v1/finops/green-carbon",
+    response_model=GreenFinOpsResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def green_carbon_endpoint(payload: GreenFinOpsRequest) -> GreenFinOpsResponse:
+    """Calculate datacenter carbon footprint (CO2e) and ESG compliance taxation."""
+    from .kernels import calculate_green_finops_footprint
+    res = calculate_green_finops_footprint(
+        payload.vcpuHours,
+        payload.memoryGbHours,
+        payload.region,
+        payload.carbonCreditCostPerTonUsd,
+    )
+    return GreenFinOpsResponse(**res)
+
+
+class EgressArbitrageRequest(BaseModel):
+    egressGbHistory: list[float]
+    natGatewayGbHistory: list[float]
+
+
+class EgressArbitrageResponse(BaseModel):
+    current_network_cost_usd: float
+    optimized_network_cost_usd: float
+    potential_savings_usd: float
+    savings_ratio_percent: float
+    total_traffic_gb: float
+    arbitrage_verdict: str
+
+
+@app.post(
+    "/v1/finops/egress-arbitrage",
+    response_model=EgressArbitrageResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def egress_arbitrage_endpoint(payload: EgressArbitrageRequest) -> EgressArbitrageResponse:
+    """Evaluate network traffic waste, NAT Gateway overspend, and Cloudflare routing arbitrage."""
+    from .kernels import calculate_cloud_egress_arbitrage
+    res = calculate_cloud_egress_arbitrage(payload.egressGbHistory, payload.natGatewayGbHistory)
+    return EgressArbitrageResponse(**res)
+
+
+
 
 def main() -> None:  # pragma: no cover - entry point
     import uvicorn

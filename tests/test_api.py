@@ -119,3 +119,74 @@ def test_predict_burn_rate_endpoint() -> None:
     assert "daily_trend" in data
 
 
+def test_monte_carlo_var_endpoint() -> None:
+    res = client.post(
+        "/v1/finops/monte-carlo-var",
+        json={
+            "spendHistory": [50.0, 52.0, 48.0, 55.0, 53.0, 58.0],
+            "nSimulations": 500,
+            "horizonDays": 15,
+            "confidenceLevel": 0.95,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["expected_spend"] > 0
+    assert data["var_spend"] >= data["expected_spend"] * 0.8
+    assert data["cvar_spend"] >= data["var_spend"]
+    assert data["tail_risk_ratio"] >= 1.0
+
+
+def test_unit_economics_endpoint() -> None:
+    # Cenário sublinear (economia de escala: volume dobra, custo cresce apenas 30%)
+    res = client.post(
+        "/v1/finops/unit-economics",
+        json={
+            "costSeries": [1000.0, 1100.0, 1200.0, 1300.0],
+            "volumeSeries": [10000.0, 14000.0, 17000.0, 20000.0],
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["scaling_regime"] == "SUBLINEAR"
+    assert data["elasticity"] < 0.85
+    assert "economia de escala" in data["verdict"].lower()
+
+
+def test_green_carbon_endpoint() -> None:
+    res = client.post(
+        "/v1/finops/green-carbon",
+        json={
+            "vcpuHours": [720.0, 720.0, 1440.0],
+            "memoryGbHours": [2880.0, 2880.0, 5760.0],
+            "region": "sa-east-1",
+            "carbonCreditCostPerTonUsd": 45.0,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_kwh"] > 0
+    assert data["metric_tons_co2e"] > 0
+    assert data["carbon_offset_cost_usd"] > 0
+    assert data["region"] == "sa-east-1"
+    assert "esg_grade" in data
+
+
+def test_egress_arbitrage_endpoint() -> None:
+    res = client.post(
+        "/v1/finops/egress-arbitrage",
+        json={
+            "egressGbHistory": [1000.0, 1500.0, 2000.0],
+            "natGatewayGbHistory": [800.0, 1200.0, 1600.0],
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["current_network_cost_usd"] > 0
+    assert data["potential_savings_usd"] > 0
+    assert data["savings_ratio_percent"] > 50.0
+    assert "arbitragem" in data["arbitrage_verdict"].lower()
+
+
+
+
