@@ -15,9 +15,10 @@ from .compiler import jit, compilation_stats, reset_compilation_stats, CloudSeal
 from .dataclass_compiler import jitdataclass
 from .kernels import predict_burn_rate
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 __all__ = [
+
     "BillingSeries",
     "ParseError",
     "parse_billing_csv",

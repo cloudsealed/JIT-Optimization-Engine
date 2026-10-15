@@ -3,63 +3,75 @@
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{lam2015numba}
+\citation{zhang2024python}
 \citation{liu2017performance}
+\citation{vanrossum2014pep484}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \citation{lam2015numba}
+\citation{rauchwerger1999lrpd}
 \citation{oliphant2007python}
 \citation{behnel2011cython}
+\citation{seljebotn2009fast}
 \citation{lehtosalo2022mypyc}
 \citation{rigo2006pypy}
+\citation{bolz2009tracing}
 \citation{cosenza2022numbadpex}
 \citation{zhang2024python}
 \citation{psf2023ast}
-\citation{flatt2002macros}
-\citation{nethercote2007valgrind}
 \@writefile{toc}{\contentsline {section}{\numberline {II}Background and Related Work}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Numba and LLVM-Based Python JIT Compilation}{2}{subsection.2.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Alternative Python-to-Native Compilers}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Feature comparison of Python-to-native compilation approaches. \text  {$\mathsurround \z@ \mathchar "458$}~= supported, \texttimes ~= not supported, P~= partial.}}{2}{table.1}\protected@file@percent }
+\newlabel{tab:comparison}{{I}{2}{Feature comparison of Python-to-native compilation approaches. \checkmark ~= supported, \texttimes ~= not supported, P~= partial}{table.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}AST Transformation in Python}{2}{subsection.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {III}Design}{2}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Architecture}{2}{subsection.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}FStringTransformer}{2}{subsection.3.2}\protected@file@percent }
-\newlabel{lst:fstring}{{1}{2}{FStringTransformer: before and after}{lstlisting.1}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}FStringTransformer: before and after.}{2}{lstlisting.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}ListCompTransformer}{2}{subsection.3.3}\protected@file@percent }
+\newlabel{lst:fstring}{{1}{2}{FStringTransformer input and output}{lstlisting.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}FStringTransformer input and output.}{2}{lstlisting.1}\protected@file@percent }
 \citation{vanrossum2014pep484}
-\newlabel{lst:listcomp}{{2}{3}{ListCompTransformer: before and after}{lstlisting.2}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}ListCompTransformer: before and after.}{3}{lstlisting.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The CloudSealed Compiler pipeline. All stages execute once at decoration time except stage~9, which executes per call only when keyword arguments are present.}}{3}{figure.1}\protected@file@percent }
+\newlabel{fig:pipeline}{{1}{3}{The CloudSealed Compiler pipeline. All stages execute once at decoration time except stage~9, which executes per call only when keyword arguments are present}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}ListCompTransformer}{3}{subsection.3.3}\protected@file@percent }
+\newlabel{lst:listcomp}{{2}{3}{ListCompTransformer input and output}{lstlisting.2}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}ListCompTransformer input and output.}{3}{lstlisting.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Type Mapper}{3}{subsection.3.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-E}}\texttt  {@jitdataclass}}{3}{subsection.3.5}\protected@file@percent }
-\newlabel{lst:jitdataclass}{{3}{3}{\texttt {@jitdataclass} and \texttt {@jit} used together}{lstlisting.3}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}\texttt  {@jitdataclass} and \texttt  {@jit} used together.}{3}{lstlisting.3}\protected@file@percent }
+\newlabel{lst:jitdataclass}{{3}{3}{\texttt {@jitdataclass} and \texttt {@jit}: all transforms active}{lstlisting.3}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}\texttt  {@jitdataclass} and \texttt  {@jit}: all transforms active.}{3}{lstlisting.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-F}}Diagnostic Layer}{3}{subsection.3.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {IV}Evaluation}{3}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Experimental Setup}{3}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}AST Transform Overhead}{3}{subsection.4.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces One-time AST transform overhead at decoration time.}}{3}{table.1}\protected@file@percent }
-\newlabel{tab:ast_overhead}{{I}{3}{One-time AST transform overhead at decoration time}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Kwargs Dispatch Overhead}{3}{subsection.4.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Per-call overhead of the kwargs unrolling wrapper.}}{3}{table.2}\protected@file@percent }
-\newlabel{tab:kwargs_overhead}{{II}{3}{Per-call overhead of the kwargs unrolling wrapper}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Diagnostic Accuracy}{3}{subsection.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Test Suite}{3}{subsection.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {V}Limitations and Threats to Validity}{3}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Case Study: N-Body Force Kernel}{4}{subsection.4.2}\protected@file@percent }
+\newlabel{lst:nbody}{{4}{4}{N-body kernel as written by the developer}{lstlisting.4}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}N-body kernel as written by the developer.}{4}{lstlisting.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces N-body kernel performance: \texttt  {@jit()} vs.\ pure Python ($n=100$ particles, 300 calls, x86-64 Linux, Python~3.14, Numba~0.68).}}{4}{table.2}\protected@file@percent }
+\newlabel{tab:nbody}{{II}{4}{N-body kernel performance: \texttt {@jit()} vs.\ pure Python ($n=100$ particles, 300 calls, x86-64 Linux, Python~3.14, Numba~0.68)}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}AST Transform Overhead}{4}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces One-time AST transform overhead measured at decoration time (1,000 repetitions, x86-64 Linux, Python~3.11.9).}}{4}{table.3}\protected@file@percent }
+\newlabel{tab:ast_overhead}{{III}{4}{One-time AST transform overhead measured at decoration time (1,000 repetitions, x86-64 Linux, Python~3.11.9)}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Kwargs Dispatch Overhead}{4}{subsection.4.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Per-call overhead of the kwargs unrolling wrapper.}}{4}{table.4}\protected@file@percent }
+\newlabel{tab:kwargs_overhead}{{IV}{4}{Per-call overhead of the kwargs unrolling wrapper}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Diagnostic Pattern Coverage}{4}{subsection.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-F}}Test Suite}{4}{subsection.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}Limitations and Threats to Validity}{4}{section.5}\protected@file@percent }
+\newlabel{sec:threats}{{V}{4}{Limitations and Threats to Validity}{section.5}{}}
 \bibcite{lam2015numba}{1}
-\bibcite{liu2017performance}{2}
+\bibcite{zhang2024python}{2}
 \bibcite{oliphant2007python}{3}
 \bibcite{behnel2011cython}{4}
-\bibcite{lehtosalo2022mypyc}{5}
-\bibcite{rigo2006pypy}{6}
-\bibcite{cosenza2022numbadpex}{7}
-\bibcite{zhang2024python}{8}
-\bibcite{psf2023ast}{9}
-\bibcite{vanrossum2014pep484}{10}
-\bibcite{flatt2002macros}{11}
-\bibcite{nethercote2007valgrind}{12}
-\bibcite{bolz2009tracing}{13}
-\bibcite{rauchwerger1999lrpd}{14}
-\bibcite{seljebotn2009fast}{15}
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Conclusion}{4}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{References}{4}{section*.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{Biographies}{4}{IEEEbiography.0}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{Rodrigo Martinez Pinto}{4}{IEEEbiography.1}\protected@file@percent }
-\gdef \@abspage@last{4}
+\bibcite{seljebotn2009fast}{5}
+\bibcite{lehtosalo2022mypyc}{6}
+\bibcite{rigo2006pypy}{7}
+\bibcite{bolz2009tracing}{8}
+\bibcite{cosenza2022numbadpex}{9}
+\bibcite{psf2023ast}{10}
+\bibcite{vanrossum2014pep484}{11}
+\bibcite{rauchwerger1999lrpd}{12}
+\bibcite{liu2017performance}{13}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Conclusion}{5}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{References}{5}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{Biographies}{5}{IEEEbiography.0}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{Rodrigo Martinez Pinto}{5}{IEEEbiography.1}\protected@file@percent }
+\gdef \@abspage@last{5}

@@ -184,6 +184,31 @@ def analyze_billing(payload: AnalyzeBillingRequest) -> AnalyzeBillingResponse:
     return AnalyzeBillingResponse(**result.to_dict())
 
 
+class PredictBurnRateRequest(BaseModel):
+    spendHistory: list[float] = Field(description="Historical daily cloud spend values.")
+    daysAhead: int = Field(default=15, description="Number of future days to project.")
+
+
+class PredictBurnRateResponse(BaseModel):
+    current_total: float
+    projected_total: float
+    daily_trend: float
+    confidence: float
+
+
+@app.post(
+    "/v1/predict-burn-rate",
+    response_model=PredictBurnRateResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def predict_burn_rate_endpoint(payload: PredictBurnRateRequest) -> PredictBurnRateResponse:
+    """Project cloud burn rate using LLVM JIT-accelerated robust regression."""
+    from .kernels import predict_burn_rate
+    res = predict_burn_rate(payload.spendHistory, payload.daysAhead)
+    return PredictBurnRateResponse(**res)
+
+
+
 def main() -> None:  # pragma: no cover - entry point
     import uvicorn
 
