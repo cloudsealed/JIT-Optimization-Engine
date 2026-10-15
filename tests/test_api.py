@@ -104,3 +104,18 @@ def test_api_key_is_enforced_when_configured(monkeypatch, stable_billing):
         "/v1/analyze-billing", json=payload, headers={"X-Api-Key": "secret"}
     )
     assert ok.status_code == 200
+
+
+def test_predict_burn_rate_endpoint() -> None:
+    res = client.post(
+        "/v1/predict-burn-rate",
+        json={"spendHistory": [100.0, 105.0, 110.0, 115.0, 120.0], "daysAhead": 10},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["current_total"] == 550.0
+    assert data["projected_total"] > 550.0
+    assert data["confidence"] >= 0.60
+    assert "daily_trend" in data
+
+
