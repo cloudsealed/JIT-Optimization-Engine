@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloudsealed-jit"
-version = "0.5.2"
+version = "0.5.3"
 description = "Ergonomic Numba JIT compiler + cloud billing anomaly detection. AST transforms for f-strings/list-comps, PEP-484 type-hint→Numba IR mapping, @jitdataclass, Monte Carlo FinOps VaR, and Unit Economics elasticity analysis."
 
 
