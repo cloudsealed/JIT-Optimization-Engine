@@ -478,3 +478,101 @@ def calculate_cloud_egress_arbitrage(
     }
 
 
+@njit(cache=True)
+def _token_burn_kernel(
+    prompt_tokens: np.ndarray,
+    completion_tokens: np.ndarray,
+    cached_tokens: np.ndarray,
+    input_rate_per_m: float,
+    output_rate_per_m: float,
+    cached_rate_per_m: float,
+) -> tuple[float, float, float, float]:
+    """Kernel compilado em LLVM para computar custo real, desperdício e taxa de cache."""
+    n = prompt_tokens.shape[0]
+    total_cost = 0.0
+    wasted_uncached_cost = 0.0
+    total_p = 0.0
+    total_c = 0.0
+
+    for i in range(n):
+        p = prompt_tokens[i]
+        comp = completion_tokens[i]
+        cache = cached_tokens[i]
+        uncached = p - cache
+        if uncached < 0.0:
+            uncached = 0.0
+
+        in_cost = (uncached / 1_000_000.0) * input_rate_per_m
+        cache_cost = (cache / 1_000_000.0) * cached_rate_per_m
+        out_cost = (comp / 1_000_000.0) * output_rate_per_m
+
+        total_cost += (in_cost + cache_cost + out_cost)
+        total_p += p
+        total_c += cache
+
+        # Desperdício estrutural se cache rate < 50% em contexto massivo (>10k tokens)
+        if p > 10000.0 and cache < (p * 0.5):
+            potential_saving = ((p * 0.75 - cache) / 1_000_000.0) * (input_rate_per_m - cached_rate_per_m)
+            if potential_saving > 0.0:
+                wasted_uncached_cost += potential_saving
+
+    cache_ratio = (total_c / total_p * 100.0) if total_p > 0.0 else 0.0
+    return total_cost, wasted_uncached_cost, cache_ratio, total_p
+
+
+def calculate_agent_token_finops(
+    prompt_tokens_history: list[int | float] | np.ndarray,
+    completion_tokens_history: list[int | float] | np.ndarray,
+    cached_tokens_history: list[int | float] | np.ndarray,
+    input_rate_per_m: float = 0.075,
+    output_rate_per_m: float = 0.30,
+    cached_rate_per_m: float = 0.01875,
+    budget_limit_usd: float = 10.0,
+) -> dict[str, float | str | bool]:
+    """Auditoria de FinOps de Agentes Autônomos (Aider, Claude, Gemini CLI, CEO Brain).
+    Calcula custo em microsegundos, identifica runaway e emite o veredito de disjuntor.
+    """
+    p_arr = np.asarray(prompt_tokens_history, dtype=np.float64)
+    c_arr = np.asarray(completion_tokens_history, dtype=np.float64)
+    ca_arr = np.asarray(cached_tokens_history, dtype=np.float64)
+
+    if p_arr.size == 0:
+        return {
+            "total_spend_usd": 0.0,
+            "wasted_uncached_spend_usd": 0.0,
+            "cache_hit_rate_pct": 0.0,
+            "is_runaway_detected": False,
+            "circuit_breaker_action": "ALLOW",
+            "verdict": "Sem histórico de tokens registrado.",
+        }
+
+    total_spend, wasted, cache_pct, total_tokens = _token_burn_kernel(
+        p_arr, c_arr, ca_arr, input_rate_per_m, output_rate_per_m, cached_rate_per_m
+    )
+
+    burn_pct = (total_spend / budget_limit_usd * 100.0) if budget_limit_usd > 0 else 0.0
+    runaway = False
+    action = "ALLOW"
+    verdict = "Consumo de tokens dentro dos limites previstos."
+
+    if total_spend >= budget_limit_usd:
+        runaway = True
+        action = "HARD_BLOCK"
+        verdict = f"DISJUNTOR FINANCEIRO ACIONADO: Custo total de ${round(total_spend, 2)} USD atingiu 100% do limite orçamentário."
+    elif burn_pct >= 80.0 or wasted > (total_spend * 0.40):
+        runaway = burn_pct >= 80.0
+        action = "THROTTLE"
+        verdict = f"ALERTA FINOPS: Consumo de {round(burn_pct, 1)}% do orçamento ou desperdício de cache excessivo (${round(wasted, 2)} USD)."
+
+    return {
+        "total_spend_usd": round(float(total_spend), 4),
+        "wasted_uncached_spend_usd": round(float(wasted), 4),
+        "cache_hit_rate_pct": round(float(cache_pct), 2),
+        "budget_burn_pct": round(float(burn_pct), 2),
+        "is_runaway_detected": runaway,
+        "circuit_breaker_action": action,
+        "verdict": verdict,
+    }
+
+
+

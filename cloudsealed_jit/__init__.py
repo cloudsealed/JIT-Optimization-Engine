@@ -19,9 +19,10 @@ from .kernels import (
     calculate_unit_economics_elasticity,
     calculate_green_finops_footprint,
     calculate_cloud_egress_arbitrage,
+    calculate_agent_token_finops,
 )
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 __all__ = [
     "BillingSeries",
@@ -34,6 +35,7 @@ __all__ = [
     "calculate_unit_economics_elasticity",
     "calculate_green_finops_footprint",
     "calculate_cloud_egress_arbitrage",
+    "calculate_agent_token_finops",
     "jit",
     "jitdataclass",
     "compilation_stats",
