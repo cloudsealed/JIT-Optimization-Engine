@@ -1,0 +1,79 @@
+# Git & VCS
+.git/
+.gitignore
+.github/
+
+# Node.js
+**/node_modules/
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/venv/
+**/env/
+**/.env/
+**/*.egg-info/
+**/dist-info/
+**/site-packages/
+
+# .NET / C#
+**/bin/
+**/obj/
+**/packages/
+**/.nuget/
+
+# Rust
+**/target/
+**/Cargo.lock
+
+# Build & Compilation
+**/dist/
+**/build/
+**/.next/
+**/out/
+**/.turbo/
+
+# Coverage & Tests
+**/coverage/
+**/htmlcov/
+**/lcov.info
+**/.nyc_output/
+**/junit.xml
+
+# IDE
+.vscode/
+.idea/
+**/*.swp
+**/*.swo
+
+# Logs & Temp
+**/*.log
+**/*.tmp
+**/tmp/
+**/temp/
+
+# Secrets (CRÍTICO)
+.env*
+!.env.example
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+
+# OS
+.DS_Store
+Thumbs.db
+*.bak
+
+# Aider cache & history
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v4/
+.aider.system
+.aider.conf.json
