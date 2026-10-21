@@ -486,3 +486,19 @@ $RECYCLE.BIN/
 build/
 dist/
 dist_publish/
+
+# Build artifacts & logs (should never be committed)
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+.env.local
+.env.*.local
+*.tmp
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
