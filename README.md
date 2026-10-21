@@ -9,13 +9,13 @@
 **⚡️ Fast, ergonomic JIT compilation for Python + FinOps‑aware anomaly detection**
 
 * Zero‑boilerplate JIT (`@jit`, `@jitdataclass`) with kwargs & f‑strings support.
-* AI Cost Firewall GitHub Action that blocks costly PRs and posts viral comments.
+* AI Cost Firewall GitHub Action that blocks costly PRs and posts visualizations of anomalies.
 * Optional Numba – works out‑of‑the‑box without it.
 * Extensible – plug in custom risk rules or SIMD C# kernels.
 
 **Stop AWS Bill Shocks BEFORE they happen.**
 
-CloudSealed JIT is the only FinOps engine that runs **inside your CI/CD pipeline in real-time**. Using Numba-accelerated Streaming MAD algorithms (Machine Learning), it intercepts and blocks anomalous cloud deployments in microseconds, before they hit production and drain your budget.
+CloudSealed JIT is a FinOps engine that runs **inside your CI/CD pipeline in real-time**. Using Numba-accelerated Streaming MAD algorithms (Machine Learning), it intercepts and blocks anomalous cloud deployments in microseconds, before they hit production and drain your budget.
 
 > *"It's like a firewall, but for your AWS/GCP Invoice."*
 
