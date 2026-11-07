@@ -7,9 +7,12 @@ tests assert on behaviour rather than on whatever the code happens to output.
 from __future__ import annotations
 
 import io
+import os
 from datetime import date, timedelta
 
 import pytest
+
+os.environ.setdefault("JIT_DEV_OPEN", "true")
 
 
 def build_csv(rows: list[tuple[str, str, float]]) -> str:

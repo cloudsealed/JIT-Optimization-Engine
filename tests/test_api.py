@@ -106,6 +106,16 @@ def test_api_key_is_enforced_when_configured(monkeypatch, stable_billing):
     assert ok.status_code == 200
 
 
+def test_api_key_fails_closed_when_not_configured(monkeypatch, stable_billing):
+    from cloudsealed_jit import api
+
+    monkeypatch.setattr(api, "API_KEY", "")
+    monkeypatch.delenv("JIT_DEV_OPEN", raising=False)
+    payload = {"companyName": "Acme", "csvContent": stable_billing}
+
+    assert client.post("/v1/analyze-billing", json=payload).status_code == 503
+
+
 def test_predict_burn_rate_endpoint() -> None:
     res = client.post(
         "/v1/predict-burn-rate",

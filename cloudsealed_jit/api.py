@@ -8,6 +8,7 @@ types are part of that contract and must not change without a version bump.
 
 from __future__ import annotations
 
+import hmac
 import logging
 import os
 import time
@@ -112,8 +113,15 @@ app = FastAPI(
 
 
 async def require_api_key(x_api_key: str = Header(default="")) -> None:
-    """Enforce ``X-Api-Key`` when an API key is configured."""
-    if API_KEY and x_api_key != API_KEY:
+    """Enforce ``X-Api-Key`` (fail-closed unless ``JIT_DEV_OPEN=true``)."""
+    if not API_KEY:
+        if os.getenv("JIT_DEV_OPEN") != "true":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="API Key not configured on server.",
+            )
+        return
+    if not hmac.compare_digest(x_api_key or "", API_KEY):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing X-Api-Key.",

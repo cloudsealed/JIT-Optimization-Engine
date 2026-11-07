@@ -1,5 +1,7 @@
 import json
+import socket
 from unittest.mock import MagicMock, patch
+import pytest
 
 from cloudsealed_jit.analysis import Anomaly, AnalysisResult, Metrics, Recommendation
 from cloudsealed_jit.notify import (
@@ -7,7 +9,10 @@ from cloudsealed_jit.notify import (
     post_webhook,
     render_generic_payload,
     render_slack_payload,
+    validate_webhook_url,
 )
+
+_PUBLIC_ADDRINFO = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
 
 
 def _result(severity: str = "CRITICAL") -> AnalysisResult:
@@ -54,7 +59,10 @@ def test_post_webhook_sends_when_severity_meets_threshold():
     mock_response = MagicMock()
     mock_response.__enter__.return_value = mock_response
     mock_response.read.return_value = b""
-    with patch("urllib.request.urlopen", return_value=mock_response) as urlopen:
+    with (
+        patch("socket.getaddrinfo", return_value=_PUBLIC_ADDRINFO),
+        patch("urllib.request.urlopen", return_value=mock_response) as urlopen,
+    ):
         sent = post_webhook("https://hooks.slack.com/services/x", _result("CRITICAL"))
     assert sent is True
     urlopen.assert_called_once()
@@ -71,6 +79,28 @@ def test_post_webhook_skips_when_below_threshold():
 
 
 def test_post_webhook_swallows_network_errors():
-    with patch("urllib.request.urlopen", side_effect=OSError("boom")):
+    with (
+        patch("socket.getaddrinfo", return_value=_PUBLIC_ADDRINFO),
+        patch("urllib.request.urlopen", side_effect=OSError("boom")),
+    ):
         sent = post_webhook("https://example.com/webhook", _result("CRITICAL"))
     assert sent is False
+
+
+@pytest.mark.parametrize(
+    "unsafe_url,resolved_ip",
+    [
+        ("http://hooks.slack.com/services/x", "93.184.216.34"),
+        ("https://localhost/webhook", "127.0.0.1"),
+        ("https://metadata.google.internal/computeMetadata/v1/", "169.254.169.254"),
+        ("https://evil.example.com/webhook", "169.254.169.254"),
+        ("https://evil.example.com/webhook", "10.0.0.1"),
+        ("https://evil.example.com/webhook", "127.0.0.1"),
+    ],
+)
+def test_validate_webhook_url_blocks_ssrf(unsafe_url: str, resolved_ip: str):
+    fake_addrinfo = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (resolved_ip, 0))]
+    with patch("socket.getaddrinfo", return_value=fake_addrinfo):
+        with pytest.raises(ValueError):
+            validate_webhook_url(unsafe_url)
+        assert post_webhook(unsafe_url, _result("CRITICAL")) is False
